@@ -14,30 +14,35 @@ app = Flask(__name__, static_folder='public')
 # ==========================================
 # 1. GOOGLE DRIVE BAĞLANTISI (TOKEN.PICKLE İLE)
 # ==========================================
-# Klasör ID'niz doğru olduğundan emin olun
 DRIVE_FOLDER_ID = '1ALg2PFHjGWnlfl3wnzYiKTP0cG2Q-Lu4' 
-drive_service = None
 
 def get_drive_service():
     creds = None
-    # token.pickle dosyası klasörde (veya Render'da Secret Files'da) olmalı
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
+    # Token dosyasının tam yolunu belirtelim
+    token_path = 'token.pickle'
+    
+    if os.path.exists(token_path):
+        try:
+            with open(token_path, 'rb') as token:
+                creds = pickle.load(token)
+        except Exception as e:
+            print(f"Token okuma hatası: {e}")
+            return None
+    else:
+        print(f"HATA: {token_path} dosyası bulunamadı!")
+        return None
     
     # Token süresi dolduysa yenile
     if creds and creds.expired and creds.refresh_token:
         try:
             creds.refresh(Request())
-            with open('token.pickle', 'wb') as token:
+            with open(token_path, 'wb') as token:
                 pickle.dump(creds, token)
         except Exception as e:
             print(f"Token yenileme hatası: {e}")
+            return None
             
-    return build('drive', 'v3', credentials=creds) if creds else None
-
-# Uygulama başlarken bağlantıyı kur
-drive_service = get_drive_service()
+    return build('drive', 'v3', credentials=creds)
 
 UPLOAD_FOLDER = 'temp_uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -78,8 +83,9 @@ def anilari_getir():
 
 @app.route('/api/ani_ekle', methods=['POST'])
 def ani_ekle():
+    drive_service = get_drive_service()
     if not drive_service:
-        return jsonify({"hata": "Drive servisi başlatılamadı. token.pickle dosyasını kontrol edin."}), 500
+        return jsonify({"hata": "Drive servisi başlatılamadı. token.pickle dosyasını Render'a 'Secret File' olarak eklediğinizden emin olun."}), 500
 
     temp_path = None
     try:
@@ -131,5 +137,4 @@ def serve_public(path):
     return send_from_directory('public', path)
 
 if __name__ == '__main__':
-    # Render üzerinde gunicorn kullanılacağı için burası yerel test içindir
     app.run(debug=True)
