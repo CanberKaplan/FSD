@@ -2,49 +2,34 @@ import os
 import sqlite3
 import uuid
 import traceback
-import pickle
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
 app = Flask(__name__, static_folder='public')
 
 # ==========================================
-# 1. GOOGLE DRIVE BAĞLANTISI (GÜVENLİ)
+# 1. GOOGLE DRIVE BAĞLANTISI (SERVICE ACCOUNT)
 # ==========================================
-SCOPES = ['https://www.googleapis.com/auth/drive']
 DRIVE_FOLDER_ID = '1ALg2PFHjGWnlfl3wnzYiKTP0cG2Q-Lu4' 
-drive_service = None # Global değişkeni burada başlatıyoruz
+drive_service = None 
 
 def get_drive_service():
-    creds = None
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
-    
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            # Not: Bulutta çalıştığında burası manuel onay isteyecektir, 
-            # bu yüzden token.pickle dosyanızın yerel bilgisayarınızda
-            # düzgün oluşturulup yüklendiğinden emin olun.
-            flow = InstalledAppFlow.from_client_secrets_file('client_secrets.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
-            
-    return build('drive', 'v3', credentials=creds)
+    # Render'da 'Secret Files' olarak eklediğimiz credentials.json dosyasını kullanıyoruz
+    creds_path = 'credentials.json'
+    if os.path.exists(creds_path):
+        creds = service_account.Credentials.from_service_account_file(creds_path)
+        return build('drive', 'v3', credentials=creds)
+    return None
 
 # Uygulama başlarken bağlantıyı kur
-try:
-    drive_service = get_drive_service()
+drive_service = get_drive_service()
+if drive_service:
     print("✅ Google Drive bağlantısı başarılı!")
-except Exception as e:
-    print("❌ Bağlantı hatası!", e)
+else:
+    print("❌ Bağlantı hatası! credentials.json bulunamadı.")
 
 UPLOAD_FOLDER = 'temp_uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -85,9 +70,8 @@ def anilari_getir():
 
 @app.route('/api/ani_ekle', methods=['POST'])
 def ani_ekle():
-    global drive_service
     if not drive_service:
-        return jsonify({"hata": "Drive servisi başlatılamadı. Lütfen sunucu ayarlarını kontrol edin."}), 500
+        return jsonify({"hata": "Drive servisi başlatılamadı. credentials.json dosyasını kontrol edin."}), 500
 
     temp_path = None
     try:
@@ -139,4 +123,4 @@ def serve_public(path):
     return send_from_directory('public', path)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run()
