@@ -13,10 +13,11 @@ from googleapiclient.http import MediaIoBaseUpload
 app = Flask(__name__, static_folder='public')
 
 # ==========================================
-# 1. GOOGLE DRIVE OAUTH2 BAĞLANTISI
+# 1. GOOGLE DRIVE BAĞLANTISI (GÜVENLİ)
 # ==========================================
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
-DRIVE_FOLDER_ID = '1ALg2PFHjGWnlfl3wnzYiKTP0cG2Q-Lu4' # Sizin Klasör ID'niz
+SCOPES = ['https://www.googleapis.com/auth/drive']
+DRIVE_FOLDER_ID = '1ALg2PFHjGWnlfl3wnzYiKTP0cG2Q-Lu4' 
+drive_service = None # Global değişkeni burada başlatıyoruz
 
 def get_drive_service():
     creds = None
@@ -28,6 +29,9 @@ def get_drive_service():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
+            # Not: Bulutta çalıştığında burası manuel onay isteyecektir, 
+            # bu yüzden token.pickle dosyanızın yerel bilgisayarınızda
+            # düzgün oluşturulup yüklendiğinden emin olun.
             flow = InstalledAppFlow.from_client_secrets_file('client_secrets.json', SCOPES)
             creds = flow.run_local_server(port=0)
         with open('token.pickle', 'wb') as token:
@@ -35,12 +39,12 @@ def get_drive_service():
             
     return build('drive', 'v3', credentials=creds)
 
-# Uygulama başlarken bağlantıyı test et
+# Uygulama başlarken bağlantıyı kur
 try:
     drive_service = get_drive_service()
-    print("✅ Google Drive (Kişisel Hesap) bağlantısı başarılı!")
+    print("✅ Google Drive bağlantısı başarılı!")
 except Exception as e:
-    print("❌ Bağlantı hatası! client_secrets.json dosyasını kontrol edin.", e)
+    print("❌ Bağlantı hatası!", e)
 
 UPLOAD_FOLDER = 'temp_uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -81,6 +85,10 @@ def anilari_getir():
 
 @app.route('/api/ani_ekle', methods=['POST'])
 def ani_ekle():
+    global drive_service
+    if not drive_service:
+        return jsonify({"hata": "Drive servisi başlatılamadı. Lütfen sunucu ayarlarını kontrol edin."}), 500
+
     temp_path = None
     try:
         baslik = request.form.get('baslik')
@@ -96,7 +104,6 @@ def ani_ekle():
         temp_path = os.path.join(UPLOAD_FOLDER, benzersiz_isim)
         foto.save(temp_path)
 
-        # Drive'a yükle (Kişisel hesap kotanızdan kullanır)
         file_metadata = {'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]}
         with open(temp_path, 'rb') as f:
             media = MediaIoBaseUpload(f, mimetype=foto.content_type, resumable=True)
@@ -131,6 +138,5 @@ def index():
 def serve_public(path):
     return send_from_directory('public', path)
 
-# app.py dosyanızın en altındaki satırı bulun ve şu şekilde değiştirin:
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(debug=True, port=5000)
