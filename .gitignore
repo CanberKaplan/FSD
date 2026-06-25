@@ -1,0 +1,6 @@
+﻿token.pickle
+client_secrets.json
+__pycache__/
+anilar.db
+temp_uploads/
+credentials.json

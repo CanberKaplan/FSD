@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Anı Defteri</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- İleride eklenecek PWA (Telefona İndirme) ayarları için altyapı -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+
+    <!-- Üst Menü / Navbar -->
+    <header class="bg-indigo-600 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-wide">📸 Anı Defteri</h1>
+            <button onclick="toggleForm()" class="bg-white text-indigo-600 px-3 py-1 rounded-full text-sm font-semibold shadow hover:bg-gray-100 transition">
+                + Yeni Ekle
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto p-4">
+        
+        <!-- Anı Ekleme Formu (Varsayılan olarak gizli) -->
+        <div id="formContainer" class="hidden bg-white p-5 rounded-2xl shadow-xl mb-6 border border-gray-100">
+            <h2 class="text-lg font-bold mb-4 text-gray-700">Yeni Anı Kaydet</h2>
+            <form id="aniForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Başlık / Mekan</label>
+                    <input type="text" id="baslik" name="baslik" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Örn: Moda Sahil Yürüyüşü">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Tarih</label>
+                    <input type="date" id="tarih" name="tarih" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Notlar</label>
+                    <textarea id="notlar" name="notlar" rows="3" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Günün en güzel anı neydi?"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Fotoğraf Seç</label>
+                    <input type="file" id="foto" name="foto" accept="image/*" required class="w-full border border-gray-300 rounded-lg p-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                </div>
+                
+                <button type="submit" id="submitBtn" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-indigo-700 transition flex justify-center items-center">
+                    <span>🚀 Kaydet ve Yükle</span>
+                </button>
+                <div id="loadingMsg" class="hidden text-center text-sm text-indigo-600 font-medium animate-pulse mt-2">
+                    Fotoğraf Drive'a yükleniyor, lütfen bekleyin...
+                </div>
+            </form>
+        </div>
+
+        <!-- Anılar Listesi (Zaman Tüneli) -->
+        <div id="anilarListesi" class="space-y-6">
+            <!-- Anılar JavaScript ile buraya eklenecek -->
+            <p class="text-center text-gray-500 mt-10">Henüz hiç anı eklenmemiş. Yukarıdan ilk anınızı ekleyin! 😊</p>
+        </div>
+
+    </main>
+
+    <script>
+        // Form açma/kapatma butonu
+        function toggleForm() {
+            const form = document.getElementById('formContainer');
+            form.classList.toggle('hidden');
+        }
+
+        // Anıları sunucudan (SQLite) çekip ekranda gösterme
+        async function anilariYukle() {
+            try {
+                const response = await fetch('/api/anilar');
+                const anilar = await response.json();
+                const container = document.getElementById('anilarListesi');
+                
+                if (anilar.length === 0) return;
+                container.innerHTML = ''; // Temizle
+
+                anilar.forEach(ani => {
+                    // Tarih formatını güzelleştir
+                    const dateObj = new Date(ani.tarih);
+                    const formatliTarih = dateObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+                    const card = `
+                        <div class="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
+                            <img src="${ani.gorsel_link}" alt="${ani.baslik}" class="w-full h-56 object-cover bg-gray-200" onerror="this.src='https://via.placeholder.com/400x300?text=Fotoğraf+Yüklenemedi'">
+                            <div class="p-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="text-lg font-bold text-gray-800">${ani.baslik}</h3>
+                                    <span class="text-xs font-semibold bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">${formatliTarih}</span>
+                                </div>
+                                <p class="text-gray-600 text-sm whitespace-pre-wrap">${ani.notlar}</p>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += card;
+                });
+            } catch (error) {
+                console.error('Anılar yüklenirken hata oluştu:', error);
+            }
+        }
+
+        // Form gönderildiğinde (Yeni anı ekleme)
+        document.getElementById('aniForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); // Sayfa yenilenmesini engelle
+            
+            const form = e.target;
+            const formData = new FormData(form);
+            const btn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loadingMsg');
+
+            // Butonu pasif yap ve yükleniyor mesajını göster
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            loading.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/ani_ekle', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Anı başarıyla eklendi! 🎉');
+                    form.reset();
+                    toggleForm();
+                    anilariYukle(); // Listeyi yenile
+                } else {
+                    alert('Hata: ' + result.hata);
+                }
+            } catch (error) {
+                alert('Bağlantı hatası oluştu!');
+            } finally {
+                // İşlem bitince butonu eski haline getir
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                loading.classList.add('hidden');
+            }
+        });
+
+        // Sayfa açıldığında mevcut anıları yükle
+        window.onload = () => {
+            // Bugünün tarihini varsayılan olarak seç
+            document.getElementById('tarih').valueAsDate = new Date();
+            anilariYukle();
+        };
+    </script>
+</body>
+</html>
