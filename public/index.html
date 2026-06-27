@@ -6,165 +6,149 @@
     <title>Anı Defteri</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Kaydırma çubuğunu gizlemek ama işlevini korumak için (opsiyonel şıklık) */
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans antialiased text-slate-800 selection:bg-blue-200 selection:text-blue-900">
     
-    <div class="max-w-5xl mx-auto p-4 md:p-8 pb-20">
+    <!-- Mobil odaklı ana taşıyıcı, kenar boşlukları daraltıldı -->
+    <div class="max-w-3xl mx-auto p-3 pb-20">
         
-        <!-- Zarif ve Orantılı Logo -->
-        <header class="flex justify-center py-6 md:py-10">
-            <img src="/logo_son.svg" alt="Logo" class="h-32 md:h-40 max-w-full object-contain drop-shadow-sm transition-transform hover:scale-105 duration-500">
+        <!-- Logo Alanı: 3 Kat Büyütüldü ve SVG bozulmasına karşı sabit kapsayıcı eklendi -->
+        <header class="flex justify-center w-full h-[21rem] py-4 mb-2">
+            <img src="logo_son.svg" alt="Logo" class="w-full h-full object-contain drop-shadow-sm transition-transform hover:scale-105 duration-500">
         </header>
 
         <!-- Home View -->
-        <div id="homeView" class="space-y-6 md:space-y-8 animate-fade-in">
+        <div id="homeView" class="space-y-4 animate-fade-in">
             
-            <!-- DİJİTAL ANILAR: Geniş, Panoramik Banner -->
-            <div id="homeHero" class="group relative w-full h-48 md:h-64 bg-slate-800 rounded-3xl shadow-md flex items-center justify-center border border-slate-700/50 overflow-hidden">
+            <!-- DİJİTAL ANILAR: Banner mobilde daha ince ayarlandı -->
+            <div id="homeHero" class="group relative w-full h-36 sm:h-48 bg-slate-800 rounded-2xl shadow-md flex items-center justify-center border border-slate-700/50 overflow-hidden">
                 <div id="slideshowContainer" class="absolute inset-0 w-full h-full"></div>
-                <!-- Daha profesyonel bir karartma (gradient) -->
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/40 to-transparent z-10"></div>
-                <p class="relative z-20 text-white font-bold tracking-[0.4em] uppercase text-sm md:text-base drop-shadow-lg opacity-90 group-hover:opacity-100 transition-opacity">
+                <p class="relative z-20 text-white font-bold tracking-[0.3em] sm:tracking-[0.4em] uppercase text-xs sm:text-sm drop-shadow-lg opacity-90 group-hover:opacity-100 transition-opacity">
                     DİJİTAL ANILAR
                 </p>
             </div>
 
-            <!-- Alt Kısım: Orantılı Grid Yapısı (5 sütun sol, 7 sütun sağ) -->
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <!-- Alt Kısım: MOBİLDE DE YAN YANA (grid-cols-2) -->
+            <div class="grid grid-cols-2 gap-3 sm:gap-4">
                 
-                <!-- Sol Sütun: Modern Kategori Butonları -->
-                <div class="md:col-span-5 flex flex-col gap-y-3.5">
+                <!-- Sol Sütun: Butonlar -->
+                <div class="flex flex-col gap-y-3">
                     
-                    <button onclick="navigate('Seyahat')" class="group flex items-center justify-between w-full bg-white py-5 px-6 font-semibold text-slate-700 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:bg-blue-50/50 transition-all duration-300 active:scale-[0.98]">
-                        <div class="flex items-center gap-4">
-                            <span class="w-1.5 h-6 rounded-full bg-blue-500"></span>
-                            <span class="tracking-wide">SEYAHAT</span>
+                    <button onclick="navigate('Seyahat')" class="group flex items-center justify-between w-full bg-white py-4 px-3 sm:px-5 font-semibold text-slate-700 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:bg-blue-50/50 transition-all active:scale-[0.98]">
+                        <div class="flex items-center gap-2.5 sm:gap-4">
+                            <span class="w-1.5 h-5 rounded-full bg-blue-500"></span>
+                            <span class="tracking-wide text-xs sm:text-sm">SEYAHAT</span>
                         </div>
-                        <span class="text-blue-500 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300">→</span>
                     </button>
 
-                    <button onclick="navigate('Yemek')" class="group flex items-center justify-between w-full bg-white py-5 px-6 font-semibold text-slate-700 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:bg-orange-50/50 transition-all duration-300 active:scale-[0.98]">
-                        <div class="flex items-center gap-4">
-                            <span class="w-1.5 h-6 rounded-full bg-orange-500"></span>
-                            <span class="tracking-wide">YEMEK</span>
+                    <button onclick="navigate('Yemek')" class="group flex items-center justify-between w-full bg-white py-4 px-3 sm:px-5 font-semibold text-slate-700 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:bg-orange-50/50 transition-all active:scale-[0.98]">
+                        <div class="flex items-center gap-2.5 sm:gap-4">
+                            <span class="w-1.5 h-5 rounded-full bg-orange-500"></span>
+                            <span class="tracking-wide text-xs sm:text-sm">YEMEK</span>
                         </div>
-                        <span class="text-orange-500 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300">→</span>
                     </button>
 
-                    <button onclick="navigate('Film')" class="group flex items-center justify-between w-full bg-white py-5 px-6 font-semibold text-slate-700 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:bg-violet-50/50 transition-all duration-300 active:scale-[0.98]">
-                        <div class="flex items-center gap-4">
-                            <span class="w-1.5 h-6 rounded-full bg-violet-500"></span>
-                            <span class="tracking-wide">FİLM</span>
+                    <button onclick="navigate('Film')" class="group flex items-center justify-between w-full bg-white py-4 px-3 sm:px-5 font-semibold text-slate-700 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:bg-violet-50/50 transition-all active:scale-[0.98]">
+                        <div class="flex items-center gap-2.5 sm:gap-4">
+                            <span class="w-1.5 h-5 rounded-full bg-violet-500"></span>
+                            <span class="tracking-wide text-xs sm:text-sm">FİLM</span>
                         </div>
-                        <span class="text-violet-500 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300">→</span>
                     </button>
 
-                    <button onclick="navigate('Aktivite')" class="group flex items-center justify-between w-full bg-white py-5 px-6 font-semibold text-slate-700 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:bg-emerald-50/50 transition-all duration-300 active:scale-[0.98]">
-                        <div class="flex items-center gap-4">
-                            <span class="w-1.5 h-6 rounded-full bg-emerald-500"></span>
-                            <span class="tracking-wide">AKTİVİTE</span>
+                    <button onclick="navigate('Aktivite')" class="group flex items-center justify-between w-full bg-white py-4 px-3 sm:px-5 font-semibold text-slate-700 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:bg-emerald-50/50 transition-all active:scale-[0.98]">
+                        <div class="flex items-center gap-2.5 sm:gap-4">
+                            <span class="w-1.5 h-5 rounded-full bg-emerald-500"></span>
+                            <span class="tracking-wide text-xs sm:text-sm">AKTİVİTE</span>
                         </div>
-                        <span class="text-emerald-500 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300">→</span>
                     </button>
                     
                 </div>
 
-                <!-- Sağ Sütun: Temiz ve Profesyonel Placeholder Kutusu -->
-                <div class="md:col-span-7 bg-white/60 backdrop-blur-sm rounded-3xl border-2 border-dashed border-slate-200 shadow-sm flex flex-col items-center justify-center p-8 min-h-[300px] hover:bg-white/80 hover:border-slate-300 transition-colors duration-300">
-                    <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                        <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                <!-- Sağ Sütun: Boş Kutu (Mobilde tam hizalı) -->
+                <div class="bg-white/60 backdrop-blur-sm rounded-xl sm:rounded-2xl border-2 border-dashed border-slate-200 shadow-sm flex flex-col items-center justify-center p-4 h-full hover:bg-white/80 transition-colors">
+                    <div class="w-10 h-10 sm:w-14 sm:h-14 bg-slate-100 rounded-full flex items-center justify-center mb-3">
+                        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                     </div>
-                    <p class="text-slate-500 text-sm font-medium text-center">
-                        Yeni modüller için<br>ayrılmış çalışma alanı
+                    <p class="text-slate-500 text-[10px] sm:text-xs font-medium text-center leading-tight">
+                        Yeni modüller için<br>çalışma alanı
                     </p>
                 </div>
 
             </div>
         </div>
 
-        <!-- Folder View (Geniş ekranda sırıtmaması için ortalanmış bir kart yapısı) -->
-        <div id="folderView" class="hidden space-y-6 max-w-2xl mx-auto">
-            <button onclick="goHome()" class="flex items-center text-slate-500 font-medium text-sm hover:text-slate-800 transition-colors">
+        <!-- Folder View -->
+        <div id="folderView" class="hidden space-y-5">
+            <button onclick="goHome()" class="flex items-center text-slate-500 font-medium text-xs sm:text-sm hover:text-slate-800 transition-colors">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                Kategorilere Dön
+                Geri Dön
             </button>
-            <h2 id="folderTitle" class="text-2xl font-bold text-slate-800 text-center uppercase tracking-widest pb-4 border-b border-slate-200"></h2>
+            <h2 id="folderTitle" class="text-xl sm:text-2xl font-bold text-slate-800 text-center uppercase tracking-widest pb-3 border-b border-slate-200"></h2>
             
-            <div id="folderList" class="grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
+            <!-- Mobilde daha net görünsün diye gap-3 -->
+            <div id="folderList" class="grid grid-cols-2 gap-3 sm:gap-4"></div>
             
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 mt-8">
-                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">YENİ KLASÖR</h3>
-                <input type="text" id="newFolderInput" placeholder="Klasör Adı (Örn: Londra)" class="w-full p-3 rounded-xl bg-slate-50 border border-transparent focus:border-slate-300 focus:bg-white mb-3 outline-none transition-all">
-                <input type="date" id="newFolderDate" class="w-full p-3 rounded-xl bg-slate-50 border border-transparent focus:border-slate-300 focus:bg-white mb-4 text-slate-600 outline-none transition-all">
-                <button onclick="createFolder()" class="w-full bg-slate-800 text-white font-semibold py-3 rounded-xl hover:bg-slate-900 shadow-md hover:shadow-lg transition-all active:scale-[0.98]">Oluştur</button>
+            <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-100 mt-6">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">YENİ KLASÖR</h3>
+                <input type="text" id="newFolderInput" placeholder="Adı (Örn: Londra)" class="w-full p-2.5 sm:p-3 text-sm rounded-lg bg-slate-50 border border-transparent focus:border-slate-300 focus:bg-white mb-2 outline-none transition-all">
+                <input type="date" id="newFolderDate" class="w-full p-2.5 sm:p-3 text-sm rounded-lg bg-slate-50 border border-transparent focus:border-slate-300 focus:bg-white mb-3 text-slate-600 outline-none transition-all">
+                <button onclick="createFolder()" class="w-full bg-slate-800 text-white text-sm font-semibold py-3 rounded-lg hover:bg-slate-900 shadow transition-all active:scale-[0.98]">Oluştur</button>
             </div>
         </div>
 
         <!-- Detail View -->
-        <div id="detailView" class="hidden space-y-6 max-w-2xl mx-auto">
-            <button id="backBtn" onclick="goBackFromDetail()" class="flex items-center text-slate-500 font-medium text-sm hover:text-slate-800 transition-colors">
+        <div id="detailView" class="hidden space-y-5">
+            <button id="backBtn" onclick="goBackFromDetail()" class="flex items-center text-slate-500 font-medium text-xs sm:text-sm hover:text-slate-800 transition-colors">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                Geri Dön
+                Geri
             </button>
-            <h1 id="subCategoryTitle" class="text-2xl font-bold text-center uppercase tracking-widest text-slate-800 pb-4 border-b border-slate-200"></h1>
+            <h1 id="subCategoryTitle" class="text-xl sm:text-2xl font-bold text-center uppercase tracking-widest text-slate-800 pb-3 border-b border-slate-200"></h1>
             
-            <div class="bg-white p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
-                <!-- Süsleme/Görsel derinlik için ufak dekoratif element -->
-                <div class="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-bl-full -z-10 opacity-50"></div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-bl-full -z-10 opacity-50"></div>
                 
-                <form id="aniForm" onsubmit="saveAni(event)" class="space-y-6">
+                <form id="aniForm" onsubmit="saveAni(event)" class="space-y-5">
                     <input type="hidden" name="kategori" id="formKategori">
                     <input type="hidden" name="sub_kategori" id="formSubKategori">
                     <input type="hidden" name="tarih" id="hiddenTarihInput">
                     
-                    <div id="inputGroup" class="space-y-5">
+                    <div id="inputGroup" class="space-y-4">
                         <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">Başlık</label>
-                            <input type="text" name="baslik" id="baslikInput" required placeholder="Anılarınıza bir isim verin..." class="w-full border-b-2 border-slate-200 py-2 bg-transparent outline-none focus:border-slate-800 text-slate-700 transition-all">
+                            <input type="text" name="baslik" id="baslikInput" required placeholder="Başlık" class="w-full border-b-2 border-slate-200 py-1.5 text-sm bg-transparent outline-none focus:border-slate-800 text-slate-700 transition-all">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">Notlar</label>
-                            <textarea name="notlar" id="notlarInput" rows="2" placeholder="O gün neler oldu? Nasıl hissettiniz..." class="w-full border-b-2 border-slate-200 py-2 bg-transparent outline-none focus:border-slate-800 text-slate-700 transition-all resize-none"></textarea>
+                            <textarea name="notlar" id="notlarInput" rows="2" placeholder="Notlarınız..." class="w-full border-b-2 border-slate-200 py-1.5 text-sm bg-transparent outline-none focus:border-slate-800 text-slate-700 transition-all resize-none"></textarea>
                         </div>
                     </div>
                     
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">Fotoğraf</label>
-                        <input type="file" name="foto" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 file:transition-colors cursor-pointer file:cursor-pointer border border-dashed border-slate-300 rounded-xl p-2 bg-slate-50/50">
+                        <input type="file" name="foto" accept="image/*" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 cursor-pointer border border-dashed border-slate-300 rounded-lg p-1.5 bg-slate-50/50">
                     </div>
                     
-                    <button type="submit" id="submitBtn" class="w-full bg-slate-800 text-white font-semibold py-4 rounded-xl hover:bg-slate-900 shadow-md hover:shadow-lg transition-all active:scale-[0.98]">
-                        ANILARIMA KAYDET
+                    <button type="submit" id="submitBtn" class="w-full bg-slate-800 text-white text-sm font-semibold py-3 rounded-lg shadow transition-all active:scale-[0.98]">
+                        KAYDET
                     </button>
                 </form>
             </div>
             
-            <div class="flex items-center gap-4 py-4">
-                <div class="h-px bg-slate-200 flex-1"></div>
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Kayıtlı Anılar</span>
-                <div class="h-px bg-slate-200 flex-1"></div>
-            </div>
-
-            <div id="aniListesi" class="space-y-6 pb-10"></div>
+            <div id="aniListesi" class="space-y-4 pb-10"></div>
         </div>
     </div>
 
     <!-- Lightbox -->
-    <div id="lightbox" class="hidden fixed inset-0 z-50 bg-slate-900/95 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity" onclick="closeLightbox()">
-        <button class="absolute top-6 right-6 text-white/50 hover:text-white bg-white/10 p-2 rounded-full transition-colors" onclick="closeLightbox()">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    <div id="lightbox" class="hidden fixed inset-0 z-50 bg-slate-900/95 flex items-center justify-center p-2" onclick="closeLightbox()">
+        <button class="absolute top-4 right-4 text-white/70 bg-white/10 p-2 rounded-full" onclick="closeLightbox()">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
-        <img id="lightboxImg" class="max-w-full max-h-full object-contain rounded-xl shadow-2xl">
+        <img id="lightboxImg" class="max-w-full max-h-full object-contain rounded-lg">
     </div>
 
     <script>
-        // JAVASCRIPT KISMI BİREBİR AYNI - DOKUNULMADI
         const bugun = new Date().toISOString().split('T')[0];
         let state = { cat: '', sub: '' };
         const usesFolders = ['Seyahat', 'Aktivite'];
@@ -200,7 +184,7 @@
                             imgs[current].classList.replace('opacity-100', 'opacity-0');
                             current = (current + 1) % imgs.length;
                             imgs[current].classList.replace('opacity-0', 'opacity-100');
-                        }, 4000); // 3 sn'den 4 sn'ye çıkarıldı (daha sakin bir geçiş için)
+                        }, 4000);
                     }
                 }
             } catch(e) {}
@@ -236,70 +220,52 @@
 
         async function loadFolders(kat) {
             const list = document.getElementById('folderList');
-            list.innerHTML = '<div class="col-span-full py-8 text-center text-slate-400 text-sm flex justify-center"><svg class="animate-spin h-5 w-5 mr-3 text-slate-400" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Yükleniyor...</div>';
+            list.innerHTML = '<div class="col-span-full py-6 text-center text-slate-400 text-xs">Yükleniyor...</div>';
             try {
                 const res = await fetch('/api/anilar');
                 const data = await res.json();
                 const folders = [...new Set(data.filter(a => a.kategori === kat).map(a => a.sub_kategori))];
                 if (folders.length === 0) {
-                    list.innerHTML = '<p class="col-span-full py-8 text-center text-slate-400 text-sm">Burada henüz bir şey yok. Yeni bir klasör oluşturun.</p>';
+                    list.innerHTML = '<p class="col-span-full py-6 text-center text-slate-400 text-xs">Klasör bulunamadı.</p>';
                     return;
                 }
                 list.innerHTML = folders.map(f => `
-                    <button onclick="openFolder('${f}', '${bugun}')" class="group relative overflow-hidden bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all active:scale-[0.98] text-left">
-                        <div class="p-5 relative z-10">
-                            <svg class="w-8 h-8 text-slate-300 mb-3 group-hover:text-slate-800 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
-                            <h3 class="font-bold text-slate-700 text-base group-hover:text-slate-900 truncate">${f}</h3>
-                        </div>
-                        <div class="absolute inset-0 bg-slate-50/50 transform scale-y-0 origin-bottom group-hover:scale-y-100 transition-transform duration-300 z-0"></div>
+                    <button onclick="openFolder('${f}', '${bugun}')" class="bg-white rounded-xl shadow-sm border border-slate-100 active:scale-[0.98] text-left p-4">
+                        <svg class="w-6 h-6 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                        <h3 class="font-bold text-slate-700 text-sm truncate">${f}</h3>
                     </button>
                 `).join('');
             } catch(e) {
-                list.innerHTML = '<p class="col-span-full py-8 text-center text-red-400 text-sm">Veriler yüklenirken bir hata oluştu.</p>';
+                list.innerHTML = '<p class="col-span-full py-6 text-center text-red-400 text-xs">Hata oluştu.</p>';
             }
         }
 
         async function loadAnilar(kat, sub) {
             const list = document.getElementById('aniListesi');
-            list.innerHTML = '<div class="py-8 text-center text-slate-400 text-sm flex justify-center"><svg class="animate-spin h-5 w-5 mr-3 text-slate-400" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Anılar getiriliyor...</div>';
+            list.innerHTML = '<div class="py-6 text-center text-slate-400 text-xs">Yükleniyor...</div>';
             try {
                 const res = await fetch('/api/anilar');
                 const data = await res.json();
                 const filtered = data.filter(a => a.kategori === kat && a.sub_kategori === sub);
                 if (filtered.length === 0) {
-                    list.innerHTML = '<div class="text-center py-10 bg-slate-100/50 rounded-2xl border border-dashed border-slate-200"><p class="text-slate-400 text-sm">İlk anınızı eklemek için yukarıdaki formu kullanın.</p></div>';
+                    list.innerHTML = '<div class="text-center py-8"><p class="text-slate-400 text-xs">İlk anınızı ekleyin.</p></div>';
                     return;
                 }
                 list.innerHTML = filtered.map(ani => {
                     const imgUrl = getDriveImgUrl(ani.gorsel_link);
                     return `
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
                             ${imgUrl ? `
-                                <div class="overflow-hidden rounded-xl mb-4 bg-slate-50 relative group cursor-pointer" onclick="openLightbox('${imgUrl}')">
-                                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors z-10 flex items-center justify-center">
-                                        <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
-                                    </div>
-                                    <img 
-                                        src="${imgUrl}" 
-                                        class="w-full h-56 object-cover transform group-hover:scale-105 transition-transform duration-500"
-                                        onerror="this.parentElement.style.display='none'"
-                                    >
-                                </div>` : ''}
-                            <div class="flex justify-between items-start gap-4">
-                                <div>
-                                    <h3 class="font-bold text-slate-800 text-lg leading-snug">${ani.baslik}</h3>
-                                    ${ani.notlar ? `<p class="text-slate-600 mt-2 leading-relaxed text-sm">${ani.notlar}</p>` : ''}
-                                </div>
-                            </div>
-                            <div class="mt-4 pt-4 border-t border-slate-100 flex items-center text-xs font-medium text-slate-400">
-                                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                ${ani.tarih}
-                            </div>
+                                <img src="${imgUrl}" onclick="openLightbox('${imgUrl}')" class="w-full h-48 object-cover rounded-lg mb-3" onerror="this.style.display='none'">
+                            ` : ''}
+                            <h3 class="font-bold text-slate-800 text-sm sm:text-base">${ani.baslik}</h3>
+                            ${ani.notlar ? `<p class="text-slate-600 mt-1 text-xs sm:text-sm">${ani.notlar}</p>` : ''}
+                            <p class="text-[10px] text-slate-400 mt-2">${ani.tarih}</p>
                         </div>
                     `;
                 }).join('');
             } catch(e) {
-                list.innerHTML = '<p class="text-center text-red-400 text-sm py-8">Anılar yüklenemedi.</p>';
+                list.innerHTML = '<p class="text-center text-red-400 text-xs py-6">Hata oluştu.</p>';
             }
         }
 
@@ -307,7 +273,7 @@
             event.preventDefault();
             const btn = document.getElementById('submitBtn');
             btn.disabled = true; 
-            btn.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> KAYDEDİLİYOR...';
+            btn.innerText = "KAYDEDİLİYOR...";
             
             const formData = new FormData(document.getElementById('aniForm'));
             try {
@@ -316,11 +282,11 @@
                 else {
                     const err = await res.json();
                     alert('Hata: ' + (err.hata || 'Bilinmeyen hata'));
-                    btn.disabled = false; btn.innerText = "ANILARIMA KAYDET";
+                    btn.disabled = false; btn.innerText = "KAYDET";
                 }
             } catch(e) { 
                 alert('Sunucuya bağlanılamadı.'); 
-                btn.disabled = false; btn.innerText = "ANILARIMA KAYDET";
+                btn.disabled = false; btn.innerText = "KAYDET";
             }
         }
 
@@ -335,9 +301,7 @@
             document.getElementById('detailView').classList.add('hidden');
             if(usesFolders.includes(state.cat)) {
                 document.getElementById('folderView').classList.remove('hidden');
-            } else {
-                goHome();
-            }
+            } else { goHome(); }
         }
         function openLightbox(url) {
             document.getElementById('lightboxImg').src = url;

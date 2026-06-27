@@ -28,9 +28,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      showgrid="false"
-     inkscape:zoom="0.40651075"
-     inkscape:cx="-118.07806"
-     inkscape:cy="533.81122"
+     inkscape:zoom="0.28744651"
+     inkscape:cx="626.20346"
+     inkscape:cy="407.03225"
      inkscape:window-width="1920"
      inkscape:window-height="1009"
      inkscape:window-x="-8"
@@ -1010,7 +1010,7 @@
   </defs>
   <g
      id="g514"
-     transform="translate(-282.28036,240.16261)">
+     transform="matrix(5.8881278,0,0,5.0016534,-3774.137,-743.92267)">
     <g
        id="g13244-6"
        transform="matrix(4.8999175,0,0,5.1509218,250.39643,-353.37396)">
@@ -1036,9 +1036,9 @@
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:96px;font-family:'Palace Script MT';-inkscape-font-specification:'Palace Script MT';white-space:pre;shape-inside:url(#rect1570-2-8-2);display:inline;fill:#8e3d0a;fill-opacity:0.670052"><tspan
            x="320.91406"
            y="330.03316"
-           id="tspan739"><tspan
+           id="tspan723"><tspan
              style="font-family:'Kunstler Script';-inkscape-font-specification:'Kunstler Script'"
-             id="tspan737">C</tspan></tspan></text>
+             id="tspan721">C</tspan></tspan></text>
     </g>
     <g
        id="g5467-7"
@@ -1064,9 +1064,9 @@
            style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:96px;font-family:'Palace Script MT';-inkscape-font-specification:'Palace Script MT';white-space:pre;shape-inside:url(#rect1570-2-0);display:inline;fill:#160b6c;fill-opacity:0.670052"><tspan
              x="320.91406"
              y="330.03316"
-             id="tspan743"><tspan
+             id="tspan727"><tspan
                style="font-family:'Kunstler Script';-inkscape-font-specification:'Kunstler Script'"
-               id="tspan741">C</tspan></tspan></text>
+               id="tspan725">C</tspan></tspan></text>
       </g>
     </g>
   </g>
