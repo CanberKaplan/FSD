@@ -108,7 +108,7 @@ def ani_ekle():
                 except Exception as e:
                     print(f"İzin verilemedi, hata: {e}")
             
-            dogrudan_gorsel_linki = f"https://docs.google.com/uc?export=view&id={file_id}"
+            dogrudan_gorsel_linki = f"https://lh3.googleusercontent.com/d/{file_id}"
             os.remove(temp_path)
 
         sheets_service.spreadsheets().values().append(
