@@ -10,8 +10,7 @@ from googleapiclient.http import MediaIoBaseUpload
 
 app = Flask(__name__, static_folder='public')
 
-# AYARLAR: Sheet1 veya Sayfa1 ismine dikkat et! 
-# Range A:H yapıldı çünkü artık 8 sütunumuz var (Sub-kategori eklendi)
+# AYARLAR
 DRIVE_FOLDER_ID = '1ALg2PFHjGWnlfl3wnzYiKTP0cG2Q-Lu4' 
 SPREADSHEET_ID = '1oBL6V7UQBCKhWClRkmZ1_3YtjxUs4KjmxHQCFjzZEFY' 
 RANGE_NAME = 'Sayfa1!A:H' 
@@ -55,29 +54,20 @@ def anilari_getir():
         if not values or len(values) <= 1: return jsonify([])
         
         anilar = []
-        # İlk satır başlık olduğu için 1'den başlıyoruz
         for row in reversed(values[1:]):
             if len(row) >= 4:
-                # Geriye dönük uyumluluk: Eski verilerde 7 sütun vardı, yenilerde 8 olacak
                 kategori = row[5] if len(row) > 5 else "Diğer"
-                
                 if len(row) >= 8:
                     sub_kategori = row[6]
                     puan = row[7]
                 else:
-                    # Eski veriler için varsayılanlar
                     sub_kategori = "Genel"
                     puan = row[6] if len(row) > 6 else "0"
                 
                 anilar.append({
-                    "id": row[0], 
-                    "baslik": row[1], 
-                    "notlar": row[2], 
-                    "tarih": row[3],
+                    "id": row[0], "baslik": row[1], "notlar": row[2], "tarih": row[3],
                     "gorsel_link": row[4] if len(row) > 4 else "NO_IMAGE",
-                    "kategori": kategori,
-                    "sub_kategori": sub_kategori,
-                    "puan": puan
+                    "kategori": kategori, "sub_kategori": sub_kategori, "puan": puan
                 })
         return jsonify(anilar)
     except Exception: return jsonify([])
@@ -93,7 +83,7 @@ def ani_ekle():
         notlar = request.form.get('notlar')
         tarih = request.form.get('tarih')
         kategori = request.form.get('kategori', 'Diğer')
-        sub_kategori = request.form.get('sub_kategori', 'Genel') # Yeni veri
+        sub_kategori = request.form.get('sub_kategori', 'Genel')
         puan = request.form.get('puan', 0)
         foto = request.files.get('foto')
 
@@ -105,11 +95,16 @@ def ani_ekle():
             foto.save(temp_path)
             with open(temp_path, 'rb') as f:
                 media = MediaIoBaseUpload(f, mimetype=foto.content_type, resumable=True)
-                file_id = drive_service.files().create(body={'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]}, media_body=media).execute().get('id')
+                file = drive_service.files().create(body={'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]}, media_body=media).execute()
+                file_id = file.get('id')
+                
+                # --- İŞTE ÇÖZÜM: Dosyayı herkese açtık ---
+                permission = {'type': 'anyone', 'role': 'reader'}
+                drive_service.permissions().create(fileId=file_id, body=permission).execute()
+            
             dogrudan_gorsel_linki = f"https://docs.google.com/uc?export=view&id={file_id}"
             os.remove(temp_path)
 
-        # Sheets'e gönderirken sub_kategori'yi de ekliyoruz
         sheets_service.spreadsheets().values().append(
             spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME, valueInputOption="USER_ENTERED",
             body={"values": [[uuid.uuid4().hex[:8], baslik, notlar, tarih, dogrudan_gorsel_linki, kategori, sub_kategori, puan]]}
