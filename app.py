@@ -10,13 +10,14 @@ from googleapiclient.http import MediaIoBaseUpload
 
 app = Flask(__name__, static_folder='public')
 
-# AYARLAR
+# AYARLAR: Sheet1 veya Sayfa1 ismine dikkat et! 
 DRIVE_FOLDER_ID = '1ALg2PFHjGWnlfl3wnzYiKTP0cG2Q-Lu4' 
 SPREADSHEET_ID = '1oBL6V7UQBCKhWClRkmZ1_3YtjxUs4KjmxHQCFjzZEFY' 
 RANGE_NAME = 'Sayfa1!A:H' 
 
 def get_google_services():
     token_path = 'token.pickle'
+    # Render ortamından token'ı al
     if not os.path.exists(token_path) and os.getenv('TOKEN_PICKLE_BASE64'):
         with open(token_path, 'wb') as f:
             f.write(base64.b64decode(os.getenv('TOKEN_PICKLE_BASE64')))
@@ -98,9 +99,14 @@ def ani_ekle():
                 file = drive_service.files().create(body={'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]}, media_body=media).execute()
                 file_id = file.get('id')
                 
-                # --- İŞTE ÇÖZÜM: Dosyayı herkese açtık ---
-                permission = {'type': 'anyone', 'role': 'reader'}
-                drive_service.permissions().create(fileId=file_id, body=permission).execute()
+                # Debug ve İzin Verme
+                print(f"DEBUG: Yüklenen Dosya ID: {file_id}")
+                try:
+                    permission = {'type': 'anyone', 'role': 'reader'}
+                    drive_service.permissions().create(fileId=file_id, body=permission).execute()
+                    print(f"Başarıyla herkese açık yapıldı.")
+                except Exception as e:
+                    print(f"İzin verilemedi, hata: {e}")
             
             dogrudan_gorsel_linki = f"https://docs.google.com/uc?export=view&id={file_id}"
             os.remove(temp_path)
