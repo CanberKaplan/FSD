@@ -88,13 +88,24 @@ def ani_ekle():
             foto.save(temp_path)
             with open(temp_path, 'rb') as f:
                 media = MediaIoBaseUpload(f, mimetype=foto.content_type, resumable=True)
-                file = drive_service.files().create(body={'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]}, media_body=media, fields='id, webViewLink').execute()
+                file = drive_service.files().create(
+                    body={'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]},
+                    media_body=media,
+                    fields='id'
+                ).execute()
                 file_id = file.get('id')
-                dogrudan_gorsel_linki = file.get('webViewLink')
+
+                # webViewLink yerine direkt <img> tag'inde çalışan thumbnail URL'si
+                dogrudan_gorsel_linki = f"https://drive.google.com/thumbnail?id={file_id}&sz=w800"
                 
                 try:
-                    drive_service.permissions().create(fileId=file_id, body={'type': 'anyone', 'role': 'reader'}).execute()
-                except: pass
+                    drive_service.permissions().create(
+                        fileId=file_id,
+                        body={'type': 'anyone', 'role': 'reader'}
+                    ).execute()
+                except:
+                    pass
+
             os.remove(temp_path)
 
         sheets_service.spreadsheets().values().append(
@@ -114,5 +125,3 @@ def serve_public(path): return send_from_directory('public', path)
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-

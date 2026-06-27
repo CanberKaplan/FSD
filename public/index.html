@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -73,9 +72,26 @@
 
     <script>
         const bugun = new Date().toISOString().split('T')[0];
-        document.getElementById('newFolderDate').value = bugun;
         let state = { cat: '', sub: '' };
         const usesFolders = ['Seyahat', 'Aktivite'];
+
+        /**
+         * Google Drive linkini <img src> ile direkt kullanılabilir hale getirir.
+         * - Zaten thumbnail formatındaysa olduğu gibi döndürür (yeni kayıtlar)
+         * - webViewLink (.../file/d/ID/view) formatındaysa ID'yi çıkarıp thumbnail URL'si üretir (eski kayıtlar)
+         * - NO_IMAGE veya geçersizse null döndürür
+         */
+        function getDriveImgUrl(link) {
+            if (!link || link === 'NO_IMAGE') return null;
+            // Zaten thumbnail formatında
+            if (link.includes('drive.google.com/thumbnail')) return link;
+            // webViewLink veya open?id= formatından file ID çıkar
+            const matchD = link.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (matchD) return `https://drive.google.com/thumbnail?id=${matchD[1]}&sz=w800`;
+            const matchId = link.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (matchId) return `https://drive.google.com/thumbnail?id=${matchId[1]}&sz=w800`;
+            return link;
+        }
 
         window.onload = () => { initSlideshow(); };
 
@@ -86,7 +102,21 @@
                 const photos = data.filter(a => a.kategori === 'Seyahat' && a.gorsel_link !== 'NO_IMAGE');
                 if (photos.length > 0) {
                     const cont = document.getElementById('slideshowContainer');
-                    cont.innerHTML = photos.map((p, i) => `<img src="${p.gorsel_link}" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i===0?'opacity-100':'opacity-0'}">`).join('');
+                    cont.innerHTML = photos.map((p, i) => {
+                        const imgUrl = getDriveImgUrl(p.gorsel_link);
+                        return `<img src="${imgUrl}" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === 0 ? 'opacity-100' : 'opacity-0'}">`;
+                    }).join('');
+
+                    // Slideshow geçişi
+                    if (photos.length > 1) {
+                        let current = 0;
+                        setInterval(() => {
+                            const imgs = cont.querySelectorAll('img');
+                            imgs[current].classList.replace('opacity-100', 'opacity-0');
+                            current = (current + 1) % imgs.length;
+                            imgs[current].classList.replace('opacity-0', 'opacity-100');
+                        }, 3000);
+                    }
                 }
             } catch(e) {}
         }
@@ -114,30 +144,62 @@
             document.getElementById('formKategori').value = state.cat;
             document.getElementById('formSubKategori').value = sub;
             document.getElementById('hiddenTarihInput').value = dateVal || bugun;
+            document.getElementById('subCategoryTitle').innerText = sub;
+            document.getElementById('backBtn').innerText = inFolder ? `← ${state.cat}` : '← Kategorilere Dön';
             
             loadAnilar(state.cat, sub);
         }
 
         async function loadFolders(kat) {
             const list = document.getElementById('folderList');
-            const res = await fetch('/api/anilar');
-            const data = await res.json();
-            const folders = [...new Set(data.filter(a => a.kategori === kat).map(a => a.sub_kategori))];
-            list.innerHTML = folders.map(f => `<button onclick="openFolder('${f}', '${bugun}')" class="p-4 bg-white rounded-xl shadow border border-slate-200 font-bold">${f}</button>`).join('');
+            list.innerHTML = '<p class="col-span-2 text-center text-slate-400 text-sm">Yükleniyor...</p>';
+            try {
+                const res = await fetch('/api/anilar');
+                const data = await res.json();
+                const folders = [...new Set(data.filter(a => a.kategori === kat).map(a => a.sub_kategori))];
+                if (folders.length === 0) {
+                    list.innerHTML = '<p class="col-span-2 text-center text-slate-400 text-sm">Henüz klasör yok.</p>';
+                    return;
+                }
+                list.innerHTML = folders.map(f => `
+                    <button onclick="openFolder('${f}', '${bugun}')" class="p-4 bg-white rounded-xl shadow border border-slate-200 font-bold text-slate-700 hover:shadow-md transition-all active:scale-[0.98]">${f}</button>
+                `).join('');
+            } catch(e) {
+                list.innerHTML = '<p class="col-span-2 text-center text-red-400 text-sm">Yüklenemedi.</p>';
+            }
         }
 
         async function loadAnilar(kat, sub) {
             const list = document.getElementById('aniListesi');
-            const res = await fetch('/api/anilar');
-            const data = await res.json();
-            const filtered = data.filter(a => a.kategori === kat && a.sub_kategori === sub);
-            list.innerHTML = filtered.map(ani => `
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                    ${ani.gorsel_link !== 'NO_IMAGE' ? `<img src="${ani.gorsel_link}" onclick="openLightbox('${ani.gorsel_link}')" class="w-full h-32 object-cover rounded-lg mb-2 cursor-pointer">` : ''}
-                    <h3 class="font-bold">${ani.baslik}</h3>
-                    <p class="text-xs text-slate-400">${ani.tarih}</p>
-                </div>
-            `).join('');
+            list.innerHTML = '<p class="text-center text-slate-400 text-sm">Yükleniyor...</p>';
+            try {
+                const res = await fetch('/api/anilar');
+                const data = await res.json();
+                const filtered = data.filter(a => a.kategori === kat && a.sub_kategori === sub);
+                if (filtered.length === 0) {
+                    list.innerHTML = '<p class="text-center text-slate-400 text-sm">Henüz anı eklenmemiş.</p>';
+                    return;
+                }
+                list.innerHTML = filtered.map(ani => {
+                    const imgUrl = getDriveImgUrl(ani.gorsel_link);
+                    return `
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                            ${imgUrl ? `
+                                <img 
+                                    src="${imgUrl}" 
+                                    onclick="openLightbox('${imgUrl}')" 
+                                    class="w-full h-48 object-cover rounded-lg mb-3 cursor-pointer hover:opacity-90 transition-opacity"
+                                    onerror="this.style.display='none'"
+                                >` : ''}
+                            <h3 class="font-bold text-slate-800">${ani.baslik}</h3>
+                            ${ani.notlar ? `<p class="text-sm text-slate-500 mt-1">${ani.notlar}</p>` : ''}
+                            <p class="text-xs text-slate-400 mt-1">${ani.tarih}</p>
+                        </div>
+                    `;
+                }).join('');
+            } catch(e) {
+                list.innerHTML = '<p class="text-center text-red-400 text-sm">Yüklenemedi.</p>';
+            }
         }
 
         async function saveAni(event) {
@@ -148,7 +210,11 @@
             try {
                 const res = await fetch('/api/ani_ekle', { method: 'POST', body: formData });
                 if(res.ok) { location.reload(); }
-            } catch(e) { alert('Hata.'); }
+                else {
+                    const err = await res.json();
+                    alert('Hata: ' + (err.hata || 'Bilinmeyen hata'));
+                }
+            } catch(e) { alert('Sunucuya bağlanılamadı.'); }
             btn.disabled = false; btn.innerText = "KAYDET";
         }
 
@@ -161,10 +227,16 @@
         function goHome() { location.reload(); }
         function goBackFromDetail() { 
             document.getElementById('detailView').classList.add('hidden');
-            if(usesFolders.includes(state.cat)) document.getElementById('folderView').classList.remove('hidden');
-            else goHome();
+            if(usesFolders.includes(state.cat)) {
+                document.getElementById('folderView').classList.remove('hidden');
+            } else {
+                goHome();
+            }
         }
-        function openLightbox(url) { document.getElementById('lightboxImg').src = url; document.getElementById('lightbox').classList.remove('hidden'); }
+        function openLightbox(url) {
+            document.getElementById('lightboxImg').src = url;
+            document.getElementById('lightbox').classList.remove('hidden');
+        }
         function closeLightbox() { document.getElementById('lightbox').classList.add('hidden'); }
     </script>
 </body>
