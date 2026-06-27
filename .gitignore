@@ -4,3 +4,4 @@ __pycache__/
 anilar.db
 temp_uploads/
 credentials.json
+token.txt
