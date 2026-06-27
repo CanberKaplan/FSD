@@ -1,5 +1,4 @@
 import os
-import sqlite3
 import uuid
 import traceback
 import pickle
@@ -13,90 +12,96 @@ from googleapiclient.http import MediaIoBaseUpload
 app = Flask(__name__, static_folder='public')
 
 # ==========================================
-# 1. GÜVENLİ BAĞLANTI (TOKEN OLUŞTURMA)
+# 1. GOOGLE DRIVE VE SHEETS BAĞLANTISI
 # ==========================================
-def setup_token():
-    token_path = 'token.pickle'
-    # Eğer ortamda bu değişken varsa ve dosya yoksa, dosyayı oluştur
-    if not os.path.exists(token_path) and os.getenv('TOKEN_PICKLE_BASE64'):
-        try:
-            # Boşlukları temizleyerek decode et (Kopyala/Yapıştır hatalarını önler)
-            base64_str = os.getenv('TOKEN_PICKLE_BASE64').strip()
-            token_data = base64.b64decode(base64_str)
-            with open(token_path, 'wb') as f:
-                f.write(token_data)
-            print("✅ token.pickle başarıyla oluşturuldu.")
-        except Exception as e:
-            print(f"❌ Token oluşturma hatası: {e}")
-
-# Uygulama başlarken token dosyasını hazırla
-setup_token()
-
 DRIVE_FOLDER_ID = '1ALg2PFHjGWnlfl3wnzYiKTP0cG2Q-Lu4' 
+# BURAYI KENDI TABLO ID'NIZ ILE DEGISTIRIN:
+SPREADSHEET_ID = 'https://docs.google.com/spreadsheets/d/1oBL6V7UQBCKhWClRkmZ1_3YtjxUs4KjmxHQCFjzZEFY/edit' 
+RANGE_NAME = 'Sayfa1!A:E' # Tablonuzun alt sekme ismi "Sayfa1" (veya "Sheet1") olmalıdır.
 
-def get_drive_service():
+drive_service = None
+sheets_service = None
+
+def get_google_services():
+    token_path = 'token.pickle'
+    
+    # EĞER DOSYA YOKSA VE ENV VARSAYSA OLUŞTUR
+    if not os.path.exists(token_path) and os.getenv('TOKEN_PICKLE_BASE64'):
+        with open(token_path, 'wb') as f:
+            f.write(base64.b64decode(os.getenv('TOKEN_PICKLE_BASE64')))
+
     creds = None
-    if os.path.exists('token.pickle'):
+    if os.path.exists(token_path):
         try:
-            with open('token.pickle', 'rb') as token:
+            with open(token_path, 'rb') as token:
                 creds = pickle.load(token)
         except Exception as e:
             print(f"Token okuma hatası: {e}")
+            return None, None
     
-    # Token süresi dolduysa yenile
     if creds and creds.expired and creds.refresh_token:
         try:
             creds.refresh(Request())
-            with open('token.pickle', 'wb') as token:
+            with open(token_path, 'wb') as token:
                 pickle.dump(creds, token)
         except Exception as e:
             print(f"Token yenileme hatası: {e}")
+            return None, None
             
-    return build('drive', 'v3', credentials=creds) if creds else None
+    if creds:
+        d_service = build('drive', 'v3', credentials=creds)
+        s_service = build('sheets', 'v4', credentials=creds)
+        return d_service, s_service
+    return None, None
+
+drive_service, sheets_service = get_google_services()
 
 UPLOAD_FOLDER = 'temp_uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ==========================================
-# 2. VERİTABANI KURULUMU
-# ==========================================
-def init_db():
-    conn = sqlite3.connect('anilar.db')
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS anilar (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            baslik TEXT NOT NULL,
-            notlar TEXT,
-            tarih TEXT,
-            drive_file_id TEXT,
-            gorsel_link TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-init_db()
-
-# ==========================================
-# 3. API UÇ NOKTALARI
+# 2. API UÇ NOKTALARI
 # ==========================================
 
 @app.route('/api/anilar', methods=['GET'])
 def anilari_getir():
-    conn = sqlite3.connect('anilar.db')
-    c = conn.cursor()
-    c.execute("SELECT * FROM anilar ORDER BY id DESC")
-    anilar = [{"id": r[0], "baslik": r[1], "notlar": r[2], "tarih": r[3], "gorsel_link": r[5]} for r in c.fetchall()]
-    conn.close()
-    return jsonify(anilar)
+    global sheets_service
+    if not sheets_service:
+        _, sheets_service = get_google_services()
+        if not sheets_service:
+             return jsonify([]) # Hata varsa boş liste dön
+             
+    try:
+        sheet = sheets_service.spreadsheets()
+        result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute()
+        values = result.get('values', [])
+
+        if not values or len(values) == 1: # Sadece başlıklar varsa
+            return jsonify([])
+
+        anilar = []
+        # İlk satırı (başlıkları) atlayarak tersten oku (En yeni en üstte)
+        for row in reversed(values[1:]):
+            if len(row) >= 5: # Satırın tam olduğundan emin ol
+                anilar.append({
+                    "id": row[0],
+                    "baslik": row[1],
+                    "notlar": row[2],
+                    "tarih": row[3],
+                    "gorsel_link": row[4]
+                })
+        return jsonify(anilar)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify([])
 
 @app.route('/api/ani_ekle', methods=['POST'])
 def ani_ekle():
-    # Servisi her istekte kontrol et
-    drive_service = get_drive_service()
-    if not drive_service:
-        return jsonify({"hata": "Drive servisi başlatılamadı. TOKEN_PICKLE_BASE64 değişkenini kontrol edin."}), 500
+    global drive_service, sheets_service
+    if not drive_service or not sheets_service:
+        drive_service, sheets_service = get_google_services()
+        if not drive_service:
+            return jsonify({"hata": "Google servisleri başlatılamadı."}), 500
 
     temp_path = None
     try:
@@ -113,7 +118,7 @@ def ani_ekle():
         temp_path = os.path.join(UPLOAD_FOLDER, benzersiz_isim)
         foto.save(temp_path)
 
-        # Drive'a Yükleme
+        # 1. Fotoğrafı Drive'a Yükle
         file_metadata = {'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]}
         with open(temp_path, 'rb') as f:
             media = MediaIoBaseUpload(f, mimetype=foto.content_type, resumable=True)
@@ -126,13 +131,18 @@ def ani_ekle():
         file_id = drive_file.get('id')
         dogrudan_gorsel_linki = f"https://docs.google.com/uc?export=view&id={file_id}"
 
-        # Veritabanına Kaydetme
-        conn = sqlite3.connect('anilar.db')
-        c = conn.cursor()
-        c.execute('INSERT INTO anilar (baslik, notlar, tarih, drive_file_id, gorsel_link) VALUES (?, ?, ?, ?, ?)',
-                  (baslik, notlar, tarih, file_id, dogrudan_gorsel_linki))
-        conn.commit()
-        conn.close()
+        # 2. Verileri Google Sheets'e Kaydet
+        ani_id = uuid.uuid4().hex[:8]
+        yeni_satir = [[ani_id, baslik, notlar, tarih, dogrudan_gorsel_linki]]
+        
+        sheet = sheets_service.spreadsheets()
+        sheet.values().append(
+            spreadsheetId=SPREADSHEET_ID,
+            range=RANGE_NAME,
+            valueInputOption="USER_ENTERED",
+            insertDataOption="INSERT_ROWS",
+            body={"values": yeni_satir}
+        ).execute()
 
         if os.path.exists(temp_path): os.remove(temp_path)
         return jsonify({"mesaj": "Anı eklendi!"})
@@ -141,9 +151,19 @@ def ani_ekle():
         traceback.print_exc()
         return jsonify({"hata": str(e)}), 500
 
+# ==========================================
+# 3. PWA VE STATİK DOSYA SUNUMU
+# ==========================================
+
 @app.route('/')
 def index():
     return send_from_directory('public', 'index.html')
+
+# Bu route, PWA'nın "offline" çalışabilmesi veya telefona kurulabilmesi 
+# için gerekli olan Service Worker dosyasını (ileride ekleyeceğiz) sunmak için
+@app.route('/sw.js')
+def sw():
+    return send_from_directory('public', 'sw.js', mimetype='application/javascript')
 
 @app.route('/<path:path>')
 def serve_public(path):
