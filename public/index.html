@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Anı Defteri</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- İleride eklenecek PWA (Telefona İndirme) ayarları için altyapı -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#4f46e5">
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans antialiased">
 
-    <!-- Üst Menü / Navbar -->
     <header class="bg-indigo-600 text-white shadow-lg sticky top-0 z-50">
         <div class="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
             <h1 class="text-xl font-bold tracking-wide">📸 Anı Defteri</h1>
@@ -23,7 +21,6 @@
 
     <main class="max-w-md mx-auto p-4">
         
-        <!-- Anı Ekleme Formu (Varsayılan olarak gizli) -->
         <div id="formContainer" class="hidden bg-white p-5 rounded-2xl shadow-xl mb-6 border border-gray-100">
             <h2 class="text-lg font-bold mb-4 text-gray-700">Yeni Anı Kaydet</h2>
             <form id="aniForm" class="space-y-4">
@@ -53,33 +50,40 @@
             </form>
         </div>
 
-        <!-- Anılar Listesi (Zaman Tüneli) -->
         <div id="anilarListesi" class="space-y-6">
-            <!-- Anılar JavaScript ile buraya eklenecek -->
-            <p class="text-center text-gray-500 mt-10">Henüz hiç anı eklenmemiş. Yukarıdan ilk anınızı ekleyin! 😊</p>
+            <p class="text-center text-gray-500 mt-10">Yükleniyor... 😊</p>
         </div>
 
     </main>
 
     <script>
-        // Form açma/kapatma butonu
+        // PWA Service Worker Kaydı
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Uygulama telefon moduna başarıyla geçti!', reg.scope))
+                    .catch(err => console.log('Hata:', err));
+            });
+        }
+
         function toggleForm() {
             const form = document.getElementById('formContainer');
             form.classList.toggle('hidden');
         }
 
-        // Anıları sunucudan (SQLite) çekip ekranda gösterme
         async function anilariYukle() {
             try {
                 const response = await fetch('/api/anilar');
                 const anilar = await response.json();
                 const container = document.getElementById('anilarListesi');
                 
-                if (anilar.length === 0) return;
-                container.innerHTML = ''; // Temizle
+                if (anilar.length === 0) {
+                    container.innerHTML = '<p class="text-center text-gray-500 mt-10">Henüz hiç anı eklenmemiş. 😊</p>';
+                    return;
+                }
+                container.innerHTML = '';
 
                 anilar.forEach(ani => {
-                    // Tarih formatını güzelleştir
                     const dateObj = new Date(ani.tarih);
                     const formatliTarih = dateObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -98,22 +102,19 @@
                     container.innerHTML += card;
                 });
             } catch (error) {
-                console.error('Anılar yüklenirken hata oluştu:', error);
+                console.error('Hata:', error);
             }
         }
 
-        // Form gönderildiğinde (Yeni anı ekleme)
         document.getElementById('aniForm').addEventListener('submit', async (e) => {
-            e.preventDefault(); // Sayfa yenilenmesini engelle
-            
+            e.preventDefault();
             const form = e.target;
             const formData = new FormData(form);
             const btn = document.getElementById('submitBtn');
             const loading = document.getElementById('loadingMsg');
 
-            // Butonu pasif yap ve yükleniyor mesajını göster
             btn.disabled = true;
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btn.classList.add('opacity-50');
             loading.classList.remove('hidden');
 
             try {
@@ -122,29 +123,25 @@
                     body: formData
                 });
 
-                const result = await response.json();
-                
                 if (response.ok) {
                     alert('Anı başarıyla eklendi! 🎉');
                     form.reset();
                     toggleForm();
-                    anilariYukle(); // Listeyi yenile
+                    anilariYukle();
                 } else {
+                    const result = await response.json();
                     alert('Hata: ' + result.hata);
                 }
             } catch (error) {
-                alert('Bağlantı hatası oluştu!');
+                alert('Bağlantı hatası!');
             } finally {
-                // İşlem bitince butonu eski haline getir
                 btn.disabled = false;
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.classList.remove('opacity-50');
                 loading.classList.add('hidden');
             }
         });
 
-        // Sayfa açıldığında mevcut anıları yükle
         window.onload = () => {
-            // Bugünün tarihini varsayılan olarak seç
             document.getElementById('tarih').valueAsDate = new Date();
             anilariYukle();
         };
