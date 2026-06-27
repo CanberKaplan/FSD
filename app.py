@@ -15,9 +15,9 @@ app = Flask(__name__, static_folder='public')
 # 1. GOOGLE DRIVE VE SHEETS BAĞLANTISI
 # ==========================================
 DRIVE_FOLDER_ID = '1ALg2PFHjGWnlfl3wnzYiKTP0cG2Q-Lu4' 
-# BURAYI KENDI TABLO ID'NIZ ILE DEGISTIRIN:
-SPREADSHEET_ID = 'https://docs.google.com/spreadsheets/d/1oBL6V7UQBCKhWClRkmZ1_3YtjxUs4KjmxHQCFjzZEFY/edit' 
-RANGE_NAME = 'Sayfa1!A:E' # Tablonuzun alt sekme ismi "Sayfa1" (veya "Sheet1") olmalıdır.
+# Sadece tablo ID'si (URL'in tamamı değil)
+SPREADSHEET_ID = '1oBL6V7UQBCKhWClRkmZ1_3YtjxUs4KjmxHQCFjzZEFY' 
+RANGE_NAME = 'Sayfa1!A:E' 
 
 drive_service = None
 sheets_service = None
@@ -69,20 +69,19 @@ def anilari_getir():
     if not sheets_service:
         _, sheets_service = get_google_services()
         if not sheets_service:
-             return jsonify([]) # Hata varsa boş liste dön
+            return jsonify([]) 
              
     try:
         sheet = sheets_service.spreadsheets()
         result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute()
         values = result.get('values', [])
 
-        if not values or len(values) == 1: # Sadece başlıklar varsa
+        if not values or len(values) == 1:
             return jsonify([])
 
         anilar = []
-        # İlk satırı (başlıkları) atlayarak tersten oku (En yeni en üstte)
         for row in reversed(values[1:]):
-            if len(row) >= 5: # Satırın tam olduğundan emin ol
+            if len(row) >= 5:
                 anilar.append({
                     "id": row[0],
                     "baslik": row[1],
@@ -118,7 +117,6 @@ def ani_ekle():
         temp_path = os.path.join(UPLOAD_FOLDER, benzersiz_isim)
         foto.save(temp_path)
 
-        # 1. Fotoğrafı Drive'a Yükle
         file_metadata = {'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]}
         with open(temp_path, 'rb') as f:
             media = MediaIoBaseUpload(f, mimetype=foto.content_type, resumable=True)
@@ -131,7 +129,6 @@ def ani_ekle():
         file_id = drive_file.get('id')
         dogrudan_gorsel_linki = f"https://docs.google.com/uc?export=view&id={file_id}"
 
-        # 2. Verileri Google Sheets'e Kaydet
         ani_id = uuid.uuid4().hex[:8]
         yeni_satir = [[ani_id, baslik, notlar, tarih, dogrudan_gorsel_linki]]
         
@@ -151,23 +148,13 @@ def ani_ekle():
         traceback.print_exc()
         return jsonify({"hata": str(e)}), 500
 
-# ==========================================
-# 3. PWA VE STATİK DOSYA SUNUMU
-# ==========================================
-
 @app.route('/')
 def index():
     return send_from_directory('public', 'index.html')
-
-# Bu route, PWA'nın "offline" çalışabilmesi veya telefona kurulabilmesi 
-# için gerekli olan Service Worker dosyasını (ileride ekleyeceğiz) sunmak için
-@app.route('/sw.js')
-def sw():
-    return send_from_directory('public', 'sw.js', mimetype='application/javascript')
 
 @app.route('/<path:path>')
 def serve_public(path):
     return send_from_directory('public', path)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
