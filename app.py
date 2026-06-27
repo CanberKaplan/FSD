@@ -11,45 +11,48 @@ from googleapiclient.http import MediaIoBaseUpload
 
 app = Flask(__name__, static_folder='public')
 
-# ==========================================
-# 1. GOOGLE DRIVE BAĞLANTISI (TOKEN.PICKLE İLE)
-# ==========================================
 DRIVE_FOLDER_ID = '1ALg2PFHjGWnlfl3wnzYiKTP0cG2Q-Lu4' 
+drive_service = None
 
 def get_drive_service():
-    creds = None
-    # Token dosyasının tam yolunu belirtelim
-    token_path = 'token.pickle'
+    # 1. Kendi klasöründe ara, 2. Render'ın Secret Files klasöründe ara
+    possible_paths = ['token.pickle', '/etc/secrets/token.pickle']
+    token_path = None
     
-    if os.path.exists(token_path):
-        try:
-            with open(token_path, 'rb') as token:
-                creds = pickle.load(token)
-        except Exception as e:
-            print(f"Token okuma hatası: {e}")
-            return None
-    else:
-        print(f"HATA: {token_path} dosyası bulunamadı!")
+    for path in possible_paths:
+        if os.path.exists(path):
+            token_path = path
+            break
+    
+    if not token_path:
+        print("HATA: token.pickle hiçbir yerde bulunamadı!")
+        return None
+
+    creds = None
+    try:
+        with open(token_path, 'rb') as token:
+            creds = pickle.load(token)
+    except Exception as e:
+        print(f"Token okuma hatası: {e}")
         return None
     
-    # Token süresi dolduysa yenile
+    # Token süresi dolduysa yenile (yazma yetkisi olmayabilir, dikkat)
     if creds and creds.expired and creds.refresh_token:
         try:
             creds.refresh(Request())
-            with open(token_path, 'wb') as token:
-                pickle.dump(creds, token)
         except Exception as e:
             print(f"Token yenileme hatası: {e}")
-            return None
             
     return build('drive', 'v3', credentials=creds)
+
+# Uygulama başlarken bağlantıyı kur
+drive_service = get_drive_service()
 
 UPLOAD_FOLDER = 'temp_uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ==========================================
-# 2. VERİTABANI KURULUMU
-# ==========================================
+# ... (init_db ve diğer API uç noktaları aynı kalacak, aşağıya ekledim) ...
+
 def init_db():
     conn = sqlite3.connect('anilar.db')
     c = conn.cursor()
@@ -68,10 +71,6 @@ def init_db():
 
 init_db()
 
-# ==========================================
-# 3. API UÇ NOKTALARI
-# ==========================================
-
 @app.route('/api/anilar', methods=['GET'])
 def anilari_getir():
     conn = sqlite3.connect('anilar.db')
@@ -83,7 +82,6 @@ def anilari_getir():
 
 @app.route('/api/ani_ekle', methods=['POST'])
 def ani_ekle():
-    drive_service = get_drive_service()
     if not drive_service:
         return jsonify({"hata": "Drive servisi başlatılamadı. token.pickle dosyasını Render'a 'Secret File' olarak eklediğinizden emin olun."}), 500
 
@@ -93,9 +91,7 @@ def ani_ekle():
         notlar = request.form.get('notlar')
         tarih = request.form.get('tarih')
         foto = request.files.get('foto')
-
-        if not foto:
-            return jsonify({"hata": "Fotoğraf seçilmedi"}), 400
+        if not foto: return jsonify({"hata": "Fotoğraf seçilmedi"}), 400
 
         orijinal_isim = secure_filename(foto.filename)
         benzersiz_isim = f"{uuid.uuid4().hex[:8]}_{orijinal_isim}"
@@ -106,9 +102,7 @@ def ani_ekle():
         with open(temp_path, 'rb') as f:
             media = MediaIoBaseUpload(f, mimetype=foto.content_type, resumable=True)
             drive_file = drive_service.files().create(
-                body=file_metadata, 
-                media_body=media, 
-                fields='id'
+                body=file_metadata, media_body=media, fields='id'
             ).execute()
         
         file_id = drive_file.get('id')
@@ -123,18 +117,23 @@ def ani_ekle():
 
         if os.path.exists(temp_path): os.remove(temp_path)
         return jsonify({"mesaj": "Anı eklendi!"})
-
     except Exception as e:
         traceback.print_exc()
         return jsonify({"hata": str(e)}), 500
 
 @app.route('/')
-def index():
-    return send_from_directory('public', 'index.html')
+def index(): return send_from_directory('public', 'index.html')
 
 @app.route('/<path:path>')
-def serve_public(path):
-    return send_from_directory('public', path)
+def serve_public(path): return send_from_directory('public', path)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
+```
+
+### Ne yapmalısın?
+1.  Render'da **"Secret Files"** kısmına `token.pickle` dosyasını yüklediğinden emin ol.
+2.  Bu güncellenmiş `app.py` kodunu `git add`, `git commit` ve `git push` ile gönder.
+3.  Render'ın loglarına tekrar bak. Artık `HATA: token.pickle hiçbir yerde bulunamadı!` yazısını alıyorsan, dosya yükleme kısmında veya isminde bir sorun var demektir.
+
+Loglarda bu sefer daha net bir hata göreceğiz. Eğer yine çalışmazsa, **Render Logs kısmındaki "HATA" yazan o satırı buraya kopyala**, hatanın kaynağını kesin olarak tespit edelim.
