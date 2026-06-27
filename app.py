@@ -16,7 +16,7 @@ app = Flask(__name__, static_folder='public')
 # ==========================================
 DRIVE_FOLDER_ID = '1ALg2PFHjGWnlfl3wnzYiKTP0cG2Q-Lu4' 
 SPREADSHEET_ID = '1oBL6V7UQBCKhWClRkmZ1_3YtjxUs4KjmxHQCFjzZEFY' 
-RANGE_NAME = 'Sayfa1!A:G' 
+RANGE_NAME = 'Sayfa1!A:G' # 7 sütunluk veri (A'dan G'ye kadar)
 
 drive_service = None
 sheets_service = None
@@ -24,6 +24,7 @@ sheets_service = None
 def get_google_services():
     token_path = 'token.pickle'
     
+    # EĞER DOSYA YOKSA VE ENV VARSAYSA OLUŞTUR
     if not os.path.exists(token_path) and os.getenv('TOKEN_PICKLE_BASE64'):
         with open(token_path, 'wb') as f:
             f.write(base64.b64decode(os.getenv('TOKEN_PICKLE_BASE64')))
@@ -78,20 +79,26 @@ def anilari_getir():
             return jsonify([])
 
         anilar = []
+        # İlk satırı (başlıkları) atlayarak tersten oku (En yeni en üstte)
         for row in reversed(values[1:]):
-            if len(row) >= 6: # En az kategoriye kadar dolu olmalı
-                puan_degeri = row[6] if len(row) >= 7 else "0" # Eski anılarda puan yoksa 0 ata
+            if len(row) >= 5: # En az 5 sütun (ID, Baslik, Notlar, Tarih, GorselLink) dolu olmalı
+                
+                # Tablodaki eski verilerde Kategori veya Puan boşsa hata vermemesi için güvenli okuma:
+                kategori_degeri = row[5] if len(row) > 5 else "Diğer"
+                puan_degeri = row[6] if len(row) > 6 else "0"
+                
                 anilar.append({
                     "id": row[0],
                     "baslik": row[1],
                     "notlar": row[2],
                     "tarih": row[3],
                     "gorsel_link": row[4],
-                    "kategori": row[5],
+                    "kategori": kategori_degeri,
                     "puan": puan_degeri
                 })
         return jsonify(anilar)
     except Exception as e:
+        print("Veri çekerken hata:", e)
         traceback.print_exc()
         return jsonify([])
 
@@ -150,6 +157,7 @@ def ani_ekle():
         return jsonify({"mesaj": "Anı eklendi!"})
 
     except Exception as e:
+        print("Anı eklerken hata:", e)
         traceback.print_exc()
         return jsonify({"hata": str(e)}), 500
 
