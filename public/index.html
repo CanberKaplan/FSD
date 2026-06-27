@@ -16,13 +16,11 @@
         
         <!-- ANA SAYFA GÖRÜNÜMÜ -->
         <div id="homeView">
-            <!-- Hero Slider -->
             <div id="heroSlider" class="w-full h-56 bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl flex items-center justify-center border border-white/20 mb-8 overflow-hidden relative">
                 <img src="https://placehold.co/600x400/1e1e1e/ffffff?text=Anilariniza+Hosgeldiniz" class="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay">
-                <p class="text-white text-xl font-bold z-10 tracking-widest drop-shadow-lg">DİJİTAL ANI DEFTERİM</p>
+                <p class="text-white text-xl font-bold z-10 tracking-widest drop-shadow-lg">X</p>
             </div>
 
-            <!-- Kategori Butonları -->
             <div class="grid grid-cols-2 gap-4">
                 <button onclick="navigate('Seyahat')" class="h-28 bg-pink-600 rounded-2xl shadow-lg font-extrabold tracking-wider hover:scale-105 active:scale-95 transition-transform flex flex-col items-center justify-center gap-2">
                     <span class="text-2xl">✈️</span> SEYAHAT
@@ -39,7 +37,6 @@
             </div>
         </div>
 
-        <!-- KATEGORİ DETAY GÖRÜNÜMÜ -->
         <div id="detailView" class="hidden space-y-8">
             <button onclick="goHome()" class="text-white/80 hover:text-white flex items-center gap-2 font-semibold transition-colors bg-white/10 px-4 py-2 rounded-full">
                 ⬅️ Ana Sayfaya Dön
@@ -47,12 +44,10 @@
             
             <h1 id="categoryTitle" class="text-3xl font-black text-center uppercase tracking-widest drop-shadow-md"></h1>
 
-            <!-- Yeni Anı Ekleme Formu -->
             <div class="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20 shadow-xl">
                 <h2 class="text-xl font-bold mb-6 text-center border-b border-white/20 pb-3">Yeni Anı Ekle</h2>
                 
                 <form id="aniForm" onsubmit="saveAni(event)" class="space-y-5">
-                    <!-- Standart Alanlar (Hepsi İçin) -->
                     <div>
                         <label class="block text-sm font-medium mb-1 text-white/90">Başlık</label>
                         <input type="text" name="baslik" required class="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white outline-none focus:ring-2 focus:ring-yellow-400 transition-all placeholder-white/30" placeholder="Anının başlığı...">
@@ -73,7 +68,6 @@
                         <input type="file" name="foto" accept="image/*" required class="w-full bg-black/20 border border-white/10 rounded-xl p-2 text-white outline-none focus:ring-2 focus:ring-yellow-400 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-white file:text-indigo-900 hover:file:bg-gray-200 cursor-pointer">
                     </div>
 
-                    <!-- Puanlama Alanı (Sadece Yemek/Film ise gözükecek) -->
                     <div id="puanContainer" class="hidden bg-black/20 p-4 rounded-xl border border-white/5">
                         <div class="flex justify-between items-center mb-2">
                             <label class="text-sm font-medium text-white/90">Puan Ver</label>
@@ -90,12 +84,9 @@
                 </form>
             </div>
 
-            <!-- Listeleme Alanı -->
             <div class="pt-8">
                 <h2 class="text-xl font-bold mb-6 text-center text-white/90">Bu Kategorideki Anılar</h2>
-                <div id="aniListesi" class="space-y-6">
-                    <!-- Anılar buraya JS ile yüklenecek -->
-                </div>
+                <div id="aniListesi" class="space-y-6"></div>
             </div>
         </div>
     </div>
@@ -103,61 +94,29 @@
     <script>
         let currentCategory = '';
 
-        // Toast Mesaj Fonksiyonu (Alert yerine bunu kullanıyoruz)
         function showMessage(msg, type = 'success') {
             const toast = document.createElement('div');
             toast.className = `fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full text-white font-bold shadow-2xl transition-all duration-500 z-50 flex items-center gap-2 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
             toast.innerHTML = type === 'success' ? `<span>✅</span> ${msg}` : `<span>⚠️</span> ${msg}`;
-            toast.style.opacity = '0';
-            toast.style.transform = 'translate(-50%, 20px)';
-            
             document.body.appendChild(toast);
-            
-            // Animasyonla göster
-            setTimeout(() => {
-                toast.style.opacity = '1';
-                toast.style.transform = 'translate(-50%, 0)';
-            }, 10);
-
-            // 3 saniye sonra kaybol ve DOM'dan sil
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translate(-50%, 20px)';
-                setTimeout(() => toast.remove(), 500);
-            }, 3000);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 3000);
         }
 
-        // Görünüm Değiştirme Fonksiyonu
         function navigate(kat) {
             currentCategory = kat;
-            
-            // Görünümleri ayarla
             document.getElementById('homeView').classList.add('hidden');
             document.getElementById('detailView').classList.remove('hidden');
             document.getElementById('categoryTitle').innerText = kat;
-
-            // Puanlama alanını göster/gizle
-            const container = document.getElementById('puanContainer');
-            if (kat === 'Film' || kat === 'Yemek') {
-                container.classList.remove('hidden');
-            } else {
-                container.classList.add('hidden');
-            }
-
-            // Sayfayı en üste kaydır ve anıları yükle
+            document.getElementById('puanContainer').classList.toggle('hidden', kat !== 'Film' && kat !== 'Yemek');
             window.scrollTo(0, 0);
             loadAnilar(kat);
         }
 
-        // Ana Sayfaya Dönüş
         function goHome() {
             document.getElementById('detailView').classList.add('hidden');
             document.getElementById('homeView').classList.remove('hidden');
-            document.getElementById('aniForm').reset();
-            document.getElementById('puanDeger').innerText = '0.0';
         }
 
-        // Puanı Yıldızlara Çeviren Yardımcı Fonksiyon
         function renderStars(puan) {
             const p = parseFloat(puan);
             let html = '';
@@ -169,109 +128,80 @@
             return html;
         }
 
-        // Anıları Sunucudan Çek ve Listele
         async function loadAnilar(kat) {
             const listContainer = document.getElementById('aniListesi');
-            listContainer.innerHTML = '<div class="text-center text-white/70 animate-pulse">Anılar yükleniyor...</div>';
+            listContainer.innerHTML = '<div class="text-center text-white/70 animate-pulse">Yükleniyor...</div>';
 
             try {
                 const response = await fetch('/api/anilar');
                 const anilar = await response.json();
-
-                // Sadece aktif kategoriye ait olanları filtrele
                 const filteredAnilar = anilar.filter(ani => ani.kategori === kat);
 
                 if (filteredAnilar.length === 0) {
-                    listContainer.innerHTML = '<div class="text-center text-white/70 bg-black/10 p-6 rounded-2xl">Bu kategoride henüz anı yok. İlk ekleyen sen ol!</div>';
+                    listContainer.innerHTML = '<div class="text-center text-white/70 bg-black/10 p-6 rounded-2xl">Henüz bu kategoride anı yok.</div>';
                     return;
                 }
 
                 let html = '';
                 filteredAnilar.forEach(ani => {
                     const isRatingCat = (ani.kategori === 'Film' || ani.kategori === 'Yemek');
-                    const puanHtml = isRatingCat ? 
-                        `<div class="text-yellow-400 text-lg tracking-widest drop-shadow-md">${renderStars(ani.puan || 0)} <span class="text-xs text-white/60 font-sans tracking-normal ml-1">(${ani.puan || 0})</span></div>` : '';
-
+                    const puanHtml = isRatingCat ? `<div class="text-yellow-400 text-lg">${renderStars(ani.puan || 0)}</div>` : '';
                     html += `
-                    <div class="bg-white/10 backdrop-blur-md rounded-3xl overflow-hidden border border-white/20 shadow-xl transition-transform hover:scale-[1.02]">
-                        <div class="h-56 relative overflow-hidden bg-black/40">
-                            <img src="${ani.gorsel_link}" onerror="this.src='https://placehold.co/600x400/2a2a2a/ffffff?text=Gorsel+Bulunamadi'" class="w-full h-full object-cover">
+                    <div class="bg-white/10 backdrop-blur-md rounded-3xl overflow-hidden border border-white/20 shadow-xl">
+                        <div class="h-48 relative overflow-hidden bg-black/40">
+                            <img src="${ani.gorsel_link}" onerror="this.src='https://placehold.co/600x400'" class="w-full h-full object-cover">
                         </div>
-                        <div class="p-5 space-y-3">
-                            <div class="flex justify-between items-start gap-4">
-                                <h3 class="text-xl font-bold leading-tight">${ani.baslik}</h3>
-                                <span class="text-xs font-bold bg-white/20 px-3 py-1.5 rounded-full whitespace-nowrap">${ani.tarih}</span>
-                            </div>
+                        <div class="p-5 space-y-2">
+                            <div class="flex justify-between items-center"><h3 class="text-xl font-bold">${ani.baslik}</h3><span class="text-xs bg-white/20 px-3 py-1 rounded-full">${ani.tarih}</span></div>
                             ${puanHtml}
-                            <p class="text-sm text-white/80 leading-relaxed">${ani.notlar}</p>
+                            <p class="text-sm text-white/80">${ani.notlar}</p>
                         </div>
-                    </div>
-                    `;
+                    </div>`;
                 });
                 listContainer.innerHTML = html;
             } catch (error) {
-                console.error("Hata:", error);
-                listContainer.innerHTML = '<div class="text-center text-red-300 bg-red-900/30 p-4 rounded-xl border border-red-500/50">Bağlantı hatası oluştu. Lütfen sayfayı yenileyin.</div>';
+                listContainer.innerHTML = '<div class="text-center text-red-300">Yükleme hatası oluştu.</div>';
             }
         }
 
-        // Anı Ekleme Fonksiyonu (Backend'e Gönderim)
         async function saveAni(event) {
-            event.preventDefault(); // Formun sayfayı yenilemesini engelle
-
+            event.preventDefault();
             const form = document.getElementById('aniForm');
             const submitBtn = document.getElementById('submitBtn');
-            
-            // Form verilerini hazırla
             const formData = new FormData(form);
             formData.append('kategori', currentCategory);
 
-            // Eğer kategori yemek/film değilse puanı sıfır gönder
-            if (currentCategory !== 'Film' && currentCategory !== 'Yemek') {
-                formData.set('puan', '0');
-            }
-
-            // Yükleniyor durumu
-            const originalText = submitBtn.innerText;
             submitBtn.innerText = "⏳ KAYDEDİLİYOR...";
             submitBtn.disabled = true;
-            submitBtn.classList.add('opacity-70');
 
             try {
-                const response = await fetch('/api/ani_ekle', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
+                const response = await fetch('/api/ani_ekle', { method: 'POST', body: formData });
+                const responseText = await response.text(); // Yanıtı düz metin al
                 
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error("Sunucu ham veri döndürdü: " + responseText.substring(0, 50));
+                }
+
                 if (response.ok) {
                     showMessage('Anı başarıyla eklendi!');
                     form.reset();
-                    document.getElementById('puanDeger').innerText = '0.0';
-                    loadAnilar(currentCategory); // Listeyi hemen güncelle
+                    loadAnilar(currentCategory);
                 } else {
-                    showMessage(result.hata || 'Bir hata oluştu.', 'error');
+                    throw new Error(result.hata || 'Sunucu hatası.');
                 }
             } catch (error) {
-                console.error("Kayıt hatası:", error);
-                showMessage('İnternet bağlantınızı kontrol edin.', 'error');
+                console.error(error);
+                showMessage('Hata: ' + error.message, 'error');
             } finally {
-                // Butonu eski haline getir
-                submitBtn.innerText = originalText;
+                submitBtn.innerText = "KAYDET";
                 submitBtn.disabled = false;
-                submitBtn.classList.remove('opacity-70');
             }
         }
 
-        // PWA Service Worker Kaydı
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(reg => console.log('Uygulama PWA modunda çalışıyor.'))
-                    .catch(err => console.log('SW Hatası:', err));
-            });
-        }
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
     </script>
 </body>
 </html>
