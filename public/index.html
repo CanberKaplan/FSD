@@ -5,160 +5,232 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anı Defteri</title>
     <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-[#dbe4e6] min-h-screen font-sans antialiased">
-    
-    <!-- Ana Konteyner -->
-    <div class="max-w-md mx-auto p-4 pb-20">
+    <style> 
+        .hidden { display: none; }
+        .transition-all { transition: all 0.2s ease-in-out; }
         
-        <!-- LOGO ALANI -->
-        <header class="flex justify-center py-6">
-            <img src="logo_son.svg" alt="Logo" class="h-32 w-auto object-contain scale-[4.5] transform">
-        </header>
-
-        <!-- 1. ANA SAYFA (Kategoriler) -->
-        <div id="homeView">
-            <div class="w-full h-48 bg-slate-800 rounded-2xl shadow-lg flex items-center justify-center border border-slate-700 mb-8 overflow-hidden">
-                <p class="text-white/80 font-medium tracking-[0.2em] uppercase text-sm">Dijital Anılar</p>
-            </div>
+        /* Arka plan görseli: Sol üstte, sabit, esnemeyen logo */
+        .bg-custom {
+            background-image: url('/logo_son.svg'); 
+            background-repeat: no-repeat;
+            background-position: top 20px left 20px;
+            background-size: 150px; 
+            background-attachment: fixed;
+            background-color: #dbe4e6;
+        }
+    </style>
+</head>
+<body class="bg-custom min-h-screen font-sans antialiased">
+    
+    <!-- İçerik katmanı -->
+    <div class="min-h-screen p-4 pb-20">
+        <div class="max-w-md mx-auto space-y-6 pt-20"> 
             
-            <div class="flex flex-col gap-y-4">
-                <button onclick="navigate('Seyahat')" class="w-full bg-white py-6 font-bold text-slate-700 rounded-xl border-l-8 border-blue-500 shadow-sm hover:shadow-md transition-all active:scale-[0.98]">SEYAHAT</button>
-                <button onclick="navigate('Yemek')" class="w-full bg-white py-6 font-bold text-slate-700 rounded-xl border-l-8 border-orange-500 shadow-sm hover:shadow-md transition-all active:scale-[0.98]">YEMEK</button>
-                <button onclick="navigate('Film')" class="w-full bg-white py-6 font-bold text-slate-700 rounded-xl border-l-8 border-violet-600 shadow-sm hover:shadow-md transition-all active:scale-[0.98]">FİLM</button>
-                <button onclick="navigate('Aktivite')" class="w-full bg-white py-6 font-bold text-slate-700 rounded-xl border-l-8 border-emerald-500 shadow-sm hover:shadow-md transition-all active:scale-[0.98]">AKTİVİTE</button>
-            </div>
-        </div>
-
-        <!-- 2. KLASÖR SEÇİMİ (Sadece Seyahat ve Aktivite için) -->
-        <div id="folderView" class="hidden space-y-6">
-            <button onclick="goHome()" class="text-slate-500 font-semibold text-sm hover:text-slate-800 transition-all">← Kategorilere Dön</button>
-            <h2 id="folderTitle" class="text-xl font-bold text-slate-800 text-center uppercase tracking-widest"></h2>
-            
-            <div id="folderList" class="grid grid-cols-2 gap-4">
-                <!-- Klasörler JS ile buraya eklenecek -->
+            <div id="homeView">
+                <div class="w-full h-48 bg-slate-800/80 backdrop-blur-md rounded-2xl shadow-lg flex items-center justify-center border border-slate-700 mb-8 overflow-hidden">
+                    <p class="text-white/90 font-medium tracking-[0.2em] uppercase text-sm">Dijital Anılar</p>
+                </div>
+                
+                <div class="flex flex-col gap-y-4">
+                    <button onclick="navigate('Seyahat')" class="w-full bg-white/90 py-6 font-bold text-slate-700 rounded-xl border-l-8 border-blue-500 shadow-sm hover:shadow-md transition-all active:scale-[0.98]">SEYAHAT</button>
+                    <button onclick="navigate('Yemek')" class="w-full bg-white/90 py-6 font-bold text-slate-700 rounded-xl border-l-8 border-orange-500 shadow-sm hover:shadow-md transition-all active:scale-[0.98]">YEMEK</button>
+                    <button onclick="navigate('Film')" class="w-full bg-white/90 py-6 font-bold text-slate-700 rounded-xl border-l-8 border-violet-600 shadow-sm hover:shadow-md transition-all active:scale-[0.98]">FİLM</button>
+                    <button onclick="navigate('Aktivite')" class="w-full bg-white/90 py-6 font-bold text-slate-700 rounded-xl border-l-8 border-emerald-500 shadow-sm hover:shadow-md transition-all active:scale-[0.98]">AKTİVİTE</button>
+                </div>
             </div>
 
-            <div class="bg-white/50 p-4 rounded-xl mt-6">
-                <input type="text" id="newFolderInput" placeholder="Yeni Klasör Adı (Örn: Londra)" class="w-full p-3 rounded-lg border border-slate-200 mb-2">
-                <button onclick="createFolder()" class="w-full bg-slate-700 text-white font-bold py-2 rounded-lg hover:bg-slate-800 transition-all active:scale-[0.98]">Klasör Oluştur</button>
-            </div>
-        </div>
+            <div id="folderView" class="hidden space-y-6">
+                <button onclick="goHome()" class="text-slate-600 font-semibold text-sm hover:text-slate-900 transition-all bg-white/50 px-4 py-2 rounded-lg backdrop-blur-sm shadow-sm">← Kategorilere Dön</button>
+                <h2 id="folderTitle" class="text-2xl font-black text-slate-800 text-center uppercase tracking-widest drop-shadow-sm"></h2>
+                
+                <!-- Mevcut Klasörler Listesi -->
+                <div id="folderList" class="grid grid-cols-2 gap-4">
+                    <!-- JS ile doldurulacak -->
+                </div>
 
-        <!-- 3. ANILAR (Detay ve Form) -->
-        <div id="detailView" class="hidden space-y-6">
-            <button id="backBtn" onclick="goBackFromDetail()" class="text-slate-500 font-semibold text-sm hover:text-slate-800 transition-all"></button>
-            <h1 id="subCategoryTitle" class="text-xl font-bold text-center uppercase tracking-widest text-slate-800"></h1>
-            
-            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <form id="aniForm" onsubmit="saveAni(event)" class="space-y-4">
-                    <input type="hidden" name="kategori" id="formKategori">
-                    <input type="hidden" name="sub_kategori" id="formSubKategori">
+                <!-- Yeni Klasör Oluşturma -->
+                <div class="bg-white/80 p-5 rounded-2xl mt-6 border border-white/50 shadow-sm backdrop-blur-md">
+                    <h3 class="text-xs font-bold text-slate-500 mb-3 uppercase tracking-widest">Yeni Klasör Ekle</h3>
+                    <input type="text" id="newFolderInput" placeholder="Klasör Adı (Örn: Londra)" class="w-full p-3 rounded-xl border border-slate-200 mb-3 outline-none focus:border-slate-500 transition-all font-medium text-slate-700 bg-white">
                     
-                    <!-- Başlık Alanı (Seyahat ve Aktivite'de gizlenecek) -->
-                    <div id="baslikContainer">
-                        <input type="text" name="baslik" id="baslikInput" placeholder="Anı Başlığı (Örn: Eyfel Kulesi Gezisi)" class="w-full border-b border-slate-300 py-2 bg-transparent outline-none focus:border-slate-800 transition-all font-medium">
-                    </div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">Seyahat/Aktivite Tarihi</label>
+                    <input type="date" id="newFolderDate" class="w-full p-3 rounded-xl border border-slate-200 mb-4 text-slate-600 outline-none focus:border-slate-500 transition-all bg-white">
                     
-                    <input type="date" name="tarih" id="tarihInput" required class="w-full border-b border-slate-300 py-2 bg-transparent outline-none focus:border-slate-800 transition-all text-slate-500">
-                    <textarea name="notlar" rows="2" placeholder="Notlar..." class="w-full border-b border-slate-300 py-2 bg-transparent outline-none focus:border-slate-800 transition-all"></textarea>
-                    
-                    <div class="pt-2">
-                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Fotoğraf (İsteğe Bağlı)</label>
-                        <input type="file" name="foto" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-all cursor-pointer">
-                    </div>
-                    
-                    <!-- Puanlama sadece Film ve Yemek için görünür -->
-                    <div id="puanContainer" class="hidden space-y-2 pt-2">
-                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Puan: <span id="puanDeger" class="text-slate-800 font-bold">0.0</span></label>
-                        <input type="range" name="puan" min="0" max="5" step="0.5" value="0" oninput="document.getElementById('puanDeger').innerText = parseFloat(this.value).toFixed(1)" class="w-full accent-slate-800 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                    </div>
-                    
-                    <button type="submit" id="submitBtn" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-900 transition-all active:scale-[0.98] mt-4 shadow-lg">KAYDET</button>
-                </form>
+                    <button onclick="createFolder()" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-900 transition-all active:scale-[0.98] shadow-md">Oluştur ve İçine Gir</button>
+                </div>
             </div>
-            <div id="aniListesi" class="space-y-4"></div>
+
+            <div id="detailView" class="hidden space-y-6">
+                <button id="backBtn" onclick="goBackFromDetail()" class="text-slate-600 font-semibold text-sm hover:text-slate-900 transition-all bg-white/50 px-4 py-2 rounded-lg backdrop-blur-sm shadow-sm"></button>
+                <h1 id="subCategoryTitle" class="text-xl font-bold text-center uppercase tracking-widest text-slate-800 drop-shadow-sm"></h1>
+                
+                <div class="bg-white/90 p-6 rounded-2xl border border-white/50 shadow-lg backdrop-blur-md">
+                    <form id="aniForm" onsubmit="saveAni(event)" class="space-y-4">
+                        <input type="hidden" name="kategori" id="formKategori">
+                        <input type="hidden" name="sub_kategori" id="formSubKategori">
+                        <!-- Klasör tarihini arka planda yollamak için gizli input -->
+                        <input type="hidden" name="tarih" id="hiddenTarihInput">
+                        
+                        <!-- Yemek ve Film için zorunlu olan genel bilgiler -->
+                        <div id="genelInputsContainer" class="space-y-4">
+                            <input type="text" name="baslik" id="baslikInput" required placeholder="Başlık / Mekan Adı" class="w-full border-b border-slate-300 py-2 bg-transparent outline-none focus:border-slate-800 transition-all font-medium text-slate-800">
+                            <input type="date" id="tarihInputDisplay" class="w-full border-b border-slate-300 py-2 bg-transparent outline-none focus:border-slate-800 transition-all text-slate-600" onchange="document.getElementById('hiddenTarihInput').value = this.value">
+                            <textarea name="notlar" id="notlarInput" rows="2" placeholder="Notlar veya Açıklamalar..." class="w-full border-b border-slate-300 py-2 bg-transparent outline-none focus:border-slate-800 transition-all text-slate-700"></textarea>
+                        </div>
+                        
+                        <!-- Fotoğraf Seçimi (Her zaman görünür) -->
+                        <div class="pt-2">
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Fotoğraf Seç</label>
+                            <input type="file" name="foto" accept="image/*" class="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-slate-200 file:text-slate-700 hover:file:bg-slate-300 transition-all cursor-pointer">
+                        </div>
+                        
+                        <!-- Puanlama sadece Film ve Yemek için görünür -->
+                        <div id="puanContainer" class="hidden space-y-2 pt-4 border-t border-slate-200 mt-4">
+                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex justify-between">
+                                <span>Puan</span>
+                                <span id="puanDeger" class="text-slate-800 font-bold">0.0</span>
+                            </label>
+                            <input type="range" name="puan" min="0" max="5" step="0.5" value="0" oninput="document.getElementById('puanDeger').innerText = parseFloat(this.value).toFixed(1)" class="w-full accent-slate-800 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        
+                        <button type="submit" id="submitBtn" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-900 transition-all active:scale-[0.98] mt-6 shadow-xl">ANILARA EKLE</button>
+                    </form>
+                </div>
+                
+                <div id="aniListesi" class="space-y-4 pb-10"></div>
+            </div>
         </div>
     </div>
 
     <script>
-        document.getElementById('tarihInput').value = new Date().toISOString().split('T')[0];
-        let state = { cat: '', sub: '' };
+        // Sayfa yüklendiğinde tarihleri bugüne eşitle
+        const bugun = new Date().toISOString().split('T')[0];
+        document.getElementById('newFolderDate').value = bugun;
+        document.getElementById('tarihInputDisplay').value = bugun;
+        document.getElementById('hiddenTarihInput').value = bugun;
+
+        let state = { cat: '', sub: '', folderDate: bugun };
+        let existingFoldersData = {}; // Klasörlerin ilk kayıt tarihlerini tutar
         
-        // Hangi kategorilerin klasör kullanacağını belirliyoruz
         const usesFolders = ['Seyahat', 'Aktivite'];
 
+        // Kategori Seçildiğinde Çalışır
         function navigate(kat) {
             state.cat = kat;
             document.getElementById('homeView').classList.add('hidden');
             
-            // Puanlama görünürlüğünü ayarla
+            // Puanlamayı sadece Yemek/Film'de aç
             document.getElementById('puanContainer').classList.toggle('hidden', kat !== 'Film' && kat !== 'Yemek');
 
             if (usesFolders.includes(kat)) {
-                // Klasörlü kategori ise klasör ekranını aç
+                // Klasörlü kategori ise klasör seçimini aç
                 document.getElementById('folderView').classList.remove('hidden');
-                document.getElementById('folderTitle').innerText = kat + " KLASÖRLERİ";
+                document.getElementById('folderTitle').innerText = kat;
+                
+                // Form inputlarını temizle
+                document.getElementById('newFolderInput').value = '';
+                document.getElementById('newFolderDate').value = new Date().toISOString().split('T')[0];
+                
                 loadFolders(kat);
             } else {
-                // Klasörsüz kategori (Yemek, Film) ise doğrudan anı formunu aç
-                openFolder('Genel'); // Varsayılan olarak 'Genel' klasörüne kaydet
+                // Klasörsüz (Yemek/Film) ise doğrudan form sayfasına "Genel" etiketiyle git
+                openFolder('Genel'); 
             }
         }
 
+        // Klasörleri Yükler
         async function loadFolders(kat) {
             const list = document.getElementById('folderList');
-            list.innerHTML = '<div class="col-span-2 text-center text-slate-500 text-sm">Yükleniyor...</div>';
+            list.innerHTML = '<div class="col-span-2 text-center text-slate-500 text-sm font-semibold py-4">Klasörler Yükleniyor...</div>';
             try {
                 const res = await fetch('/api/anilar');
                 const data = await res.json();
                 
-                // O kategoriye ait benzersiz klasör (sub_kategori) isimlerini bul
-                const folders = [...new Set(data.filter(a => a.kategori === kat).map(a => a.sub_kategori))];
+                existingFoldersData = {};
+                
+                data.forEach(a => {
+                    if (a.kategori === kat) {
+                        // Klasör adını key yapıp, ilk gördüğü tarihi o klasörün tarihi olarak saklar
+                        if (!existingFoldersData[a.sub_kategori]) {
+                            existingFoldersData[a.sub_kategori] = a.tarih;
+                        }
+                    }
+                });
+                
+                const folders = Object.keys(existingFoldersData);
                 
                 if (folders.length === 0) {
-                    list.innerHTML = '<div class="col-span-2 text-center text-slate-500 text-sm">Henüz klasör yok.</div>';
+                    list.innerHTML = '<div class="col-span-2 text-center text-slate-500 text-sm bg-white/50 p-4 rounded-xl">Bu kategoride henüz klasör yok.</div>';
                 } else {
-                    list.innerHTML = folders.map(f => 
-                        `<button onclick="openFolder('${f}')" class="p-4 bg-white rounded-xl shadow border border-slate-200 font-bold text-slate-700 hover:bg-slate-50 transition-all truncate">${f}</button>`
-                    ).join('');
+                    list.innerHTML = folders.map(f => `
+                        <button onclick="openFolder('${f}')" class="p-5 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-slate-200 hover:bg-white hover:shadow-md transition-all text-left flex flex-col justify-center active:scale-[0.98]">
+                            <span class="font-black text-slate-700 truncate w-full text-lg">${f}</span>
+                            <span class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider flex items-center gap-1">
+                                📅 ${existingFoldersData[f] || 'Tarih Yok'}
+                            </span>
+                        </button>
+                    `).join('');
                 }
             } catch(e) {
                 list.innerHTML = '<div class="col-span-2 text-center text-red-500 text-sm">Klasörler yüklenemedi.</div>';
             }
         }
 
+        // Yeni Klasör Oluştur Butonu
         function createFolder() {
-            const input = document.getElementById('newFolderInput');
-            const name = input.value.trim();
-            if (name) {
-                // Klasör oluşturulduğunda doğrudan içine gir (input'u temizle)
-                input.value = '';
-                openFolder(name);
+            const name = document.getElementById('newFolderInput').value.trim();
+            const dateVal = document.getElementById('newFolderDate').value;
+            
+            if (name && dateVal) {
+                document.getElementById('newFolderInput').value = ''; // Temizle
+                state.folderDate = dateVal; // Yeni klasörün tarihini hafızaya al
+                openFolder(name, true); // true = yeni klasör olduğunu belirtir
+            } else {
+                alert("Lütfen klasör adı ve tarihi girin.");
             }
         }
 
-        function openFolder(sub) {
+        // Anı Detay/Form Sayfasını Açar
+        function openFolder(sub, isNew = false) {
             state.sub = sub;
             document.getElementById('folderView').classList.add('hidden');
             document.getElementById('detailView').classList.remove('hidden');
             
-            // Başlık ve form verilerini ayarla
+            const genelInputs = document.getElementById('genelInputsContainer');
+            const baslik = document.getElementById('baslikInput');
+            const hiddenTarih = document.getElementById('hiddenTarihInput');
+            const notlar = document.getElementById('notlarInput');
+            
             if (usesFolders.includes(state.cat)) {
-                document.getElementById('subCategoryTitle').innerText = `${state.cat} > ${sub}`;
+                // SEYAHAT / AKTİVİTE İÇİN (Hızlı Yükleme Modu)
+                document.getElementById('subCategoryTitle').innerText = sub;
                 document.getElementById('backBtn').innerText = "← Klasörlere Dön";
                 
-                // Klasör içi fotoğraflarda başlık sormaya gerek yok
-                document.getElementById('baslikContainer').classList.add('hidden');
-                document.getElementById('baslikInput').required = false;
-                document.getElementById('baslikInput').value = '';
+                // Başlık, Notlar, Tarih gizlenir ve zorunlulukları kaldırılır
+                genelInputs.classList.add('hidden');
+                baslik.required = false;
+                baslik.value = '';
+                notlar.value = '';
+                
+                // Klasör önceden varsa onun tarihini kullan, yeniyse hafızadakini kullan
+                if (!isNew && existingFoldersData[sub]) {
+                    state.folderDate = existingFoldersData[sub];
+                }
+                hiddenTarih.value = state.folderDate; // Gizli inputa yaz, arkadan yollansın
+                
             } else {
+                // YEMEK / FİLM İÇİN (Detaylı Form Modu)
                 document.getElementById('subCategoryTitle').innerText = state.cat;
                 document.getElementById('backBtn').innerText = "← Kategorilere Dön";
                 
-                // Yemek/Film için Başlık (Örn: Restoran Adı) zorunlu olmalı
-                document.getElementById('baslikContainer').classList.remove('hidden');
-                document.getElementById('baslikInput').required = true;
+                // Tüm girdiler görünür ve Başlık/Tarih zorunludur
+                genelInputs.classList.remove('hidden');
+                baslik.required = true;
+                
+                // Tarihi bugüne eşitle
+                const today = new Date().toISOString().split('T')[0];
+                hiddenTarih.value = today;
+                document.getElementById('tarihInputDisplay').value = today;
             }
             
             document.getElementById('formKategori').value = state.cat;
@@ -167,24 +239,27 @@
             loadAnilar(state.cat, sub);
         }
 
+        // Ana Sayfaya Döner
         function goHome() {
             document.getElementById('folderView').classList.add('hidden');
             document.getElementById('detailView').classList.add('hidden');
             document.getElementById('homeView').classList.remove('hidden');
         }
 
+        // Detaydan Geri Çıkar (Geldiği yere göre)
         function goBackFromDetail() {
             if (usesFolders.includes(state.cat)) {
-                // Seyahat/Aktivite ise klasör listesine dön
+                // Seyahat/Aktivite ise klasör menüsüne dön ve klasörleri güncelle
                 document.getElementById('detailView').classList.add('hidden');
                 document.getElementById('folderView').classList.remove('hidden');
-                loadFolders(state.cat); // Klasör listesini güncelle
+                loadFolders(state.cat); 
             } else {
                 // Yemek/Film ise doğrudan ana sayfaya dön
                 goHome();
             }
         }
 
+        // Puan Yıldızlarını Çizer
         function renderStars(puan) {
             const p = parseFloat(puan);
             let html = '';
@@ -194,68 +269,84 @@
             return html;
         }
 
+        // Klasördeki/Kategorideki Anıları Listeler
         async function loadAnilar(kat, sub) {
             const list = document.getElementById('aniListesi');
-            list.innerHTML = '<div class="text-center text-slate-500 text-sm py-4">Yükleniyor...</div>';
+            list.innerHTML = '<div class="text-center text-slate-500 font-semibold py-8">Anılar Yükleniyor...</div>';
             try {
                 const res = await fetch('/api/anilar');
                 const data = await res.json();
                 
-                // Hem Kategori hem de Klasör (Sub-kategori) ismine göre filtrele
+                // Hangi kategori ve alt kategoride olduğumuza göre filtrele
                 const filtered = data.filter(a => a.kategori === kat && a.sub_kategori === sub);
                 
-                list.innerHTML = filtered.length ? '' : '<div class="text-center text-slate-500 text-sm py-4">Bu alanda henüz anı yok.</div>';
+                list.innerHTML = filtered.length ? '' : '<div class="text-center text-slate-500 font-medium py-8 bg-white/50 rounded-xl">Bu alanda henüz anı yok. İlk anını ekle!</div>';
                 
                 filtered.forEach(ani => {
                     const isRated = (ani.kategori === 'Film' || ani.kategori === 'Yemek');
-                    const imgHtml = ani.gorsel_link !== "NO_IMAGE" ? `<img src="${ani.gorsel_link}" class="w-full h-48 object-cover rounded-xl mb-3 shadow-sm">` : '';
+                    const imgHtml = ani.gorsel_link !== "NO_IMAGE" ? `<img src="${ani.gorsel_link}" class="w-full h-auto object-cover rounded-xl mb-4 shadow-sm border border-slate-100">` : '';
                     
-                    // Eğer başlık boş bırakılmışsa (Seyahat klasörü içiyse) h3 etiketini hiç ekleme
-                    const baslikHtml = (ani.baslik && ani.baslik.trim() !== "") ? `<h3 class="font-bold text-slate-800 text-lg mb-1">${ani.baslik}</h3>` : '';
+                    // Veri yoksa HTML etiketlerini boş bırak ki gereksiz boşluk oluşmasın
+                    const baslikHtml = (ani.baslik && ani.baslik.trim() !== "") ? `<h3 class="font-black text-slate-800 text-xl mb-1">${ani.baslik}</h3>` : '';
+                    const notlarHtml = (ani.notlar && ani.notlar.trim() !== "") ? `<p class="text-sm text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100 mt-2">${ani.notlar}</p>` : '';
+                    const tarihHtml = `<p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">${ani.tarih}</p>`;
                     
                     list.innerHTML += `
-                    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                    <div class="bg-white/95 p-5 rounded-3xl border border-white/60 shadow-md backdrop-blur-sm transition-all hover:shadow-lg">
                         ${imgHtml}
                         ${baslikHtml}
-                        <p class="text-xs text-slate-500 mb-2">${ani.tarih}</p>
-                        ${isRated ? `<div class="text-yellow-500 mb-2 text-lg">${renderStars(ani.puan)}</div>` : ''}
-                        <p class="text-sm text-slate-600 leading-relaxed">${ani.notlar}</p>
+                        ${isRated ? `<div class="text-yellow-500 mb-3 text-lg drop-shadow-sm">${renderStars(ani.puan)}</div>` : ''}
+                        ${notlarHtml}
+                        <div class="mt-4 flex justify-end">
+                            ${tarihHtml}
+                        </div>
                     </div>`;
                 });
             } catch(e) { list.innerHTML = '<div class="text-center text-red-500 text-sm py-4">Anılar yüklenirken hata oluştu.</div>'; }
         }
 
+        // Anıyı Kaydeder
         async function saveAni(event) {
             event.preventDefault();
             const btn = document.getElementById('submitBtn');
             btn.disabled = true; 
-            btn.innerText = "KAYDEDİLİYOR...";
+            btn.innerText = "YÜKLENİYOR (LÜTFEN BEKLEYİN)...";
             
             const formData = new FormData(document.getElementById('aniForm'));
             
             try {
                 const res = await fetch('/api/ani_ekle', { method: 'POST', body: formData });
                 if (res.ok) { 
-                    alert('Anı başarıyla kaydedildi!'); 
+                    alert('Anı başarıyla eklendi!'); 
                     
-                    // Formu temizle ama kategori bilgilerini tut
+                    // Formu temizle
                     document.getElementById('aniForm').reset(); 
-                    document.getElementById('tarihInput').value = new Date().toISOString().split('T')[0];
+                    
+                    // Değerleri eski haline getir
                     document.getElementById('formKategori').value = state.cat;
                     document.getElementById('formSubKategori').value = state.sub;
+                    
+                    if(usesFolders.includes(state.cat)){
+                        document.getElementById('hiddenTarihInput').value = state.folderDate;
+                    } else {
+                        const bugun = new Date().toISOString().split('T')[0];
+                        document.getElementById('hiddenTarihInput').value = bugun;
+                        document.getElementById('tarihInputDisplay').value = bugun;
+                    }
+                    
                     document.getElementById('puanDeger').innerText = '0.0';
                     
-                    // Listeyi Yenile
+                    // Sayfayı yenile
                     loadAnilar(state.cat, state.sub); 
                 } else {
                     throw new Error('Hata');
                 }
             } catch(e) { 
-                alert('Bir sorun oluştu, lütfen tekrar dene.'); 
+                alert('Bir sorun oluştu. Lütfen bağlantınızı kontrol edip tekrar deneyin.'); 
             }
             
             btn.disabled = false; 
-            btn.innerText = "KAYDET";
+            btn.innerText = "ANILARA EKLE";
         }
     </script>
 </body>
