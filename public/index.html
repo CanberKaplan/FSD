@@ -19,6 +19,7 @@
         
         <!-- Minimalist Tipografik SC Logosu -->
         <header class="flex flex-col items-center justify-center w-full py-10 mb-4 select-none">
+
             <svg viewBox="0 0 680 480" width="160" role="img" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <clipPath id="top-half">
@@ -35,8 +36,8 @@
             <text x="360" y="360" font-family="'Playfair Display', Georgia, serif" font-size="380" font-weight="900" font-style="italic" text-anchor="middle" dominant-baseline="middle" fill="none" stroke="#F97316" stroke-width="18" clip-path="url(#top-half)">C</text>
             <text x="360" y="360" font-family="'Playfair Display', Georgia, serif" font-size="380" font-weight="900" font-style="italic" text-anchor="middle" dominant-baseline="middle" fill="none" stroke="#F97316" stroke-width="5" clip-path="url(#top-half)">C</text>
             </svg>
-        </header>
 
+        </header>
         <!-- Home View -->
         <div id="homeView" class="space-y-4 animate-fade-in">
             
@@ -129,6 +130,7 @@
                 <div class="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-bl-full -z-10 opacity-50"></div>
                 
                 <form id="aniForm" onsubmit="saveAni(event)" class="space-y-5">
+                    <input type="hidden" name="id" id="formAniId">
                     <input type="hidden" name="kategori" id="formKategori">
                     <input type="hidden" name="sub_kategori" id="formSubKategori">
                     <input type="hidden" name="tarih" id="hiddenTarihInput">
@@ -136,6 +138,9 @@
                     <div id="inputGroup" class="space-y-4">
                         <div>
                             <input type="text" name="baslik" id="baslikInput" required placeholder="Başlık" class="w-full border-b-2 border-slate-200 py-1.5 text-sm bg-transparent outline-none focus:border-slate-800 text-slate-700 transition-all">
+                        </div>
+                        <div>
+                            <input type="date" id="tarihInputDisplay" class="w-full border-b-2 border-slate-200 py-1.5 text-sm bg-transparent outline-none focus:border-slate-800 text-slate-500 transition-all" onchange="document.getElementById('hiddenTarihInput').value = this.value">
                         </div>
                         <div>
                             <textarea name="notlar" id="notlarInput" rows="2" placeholder="Notlarınız..." class="w-full border-b-2 border-slate-200 py-1.5 text-sm bg-transparent outline-none focus:border-slate-800 text-slate-700 transition-all resize-none"></textarea>
@@ -163,9 +168,10 @@
                         <input type="file" name="foto" accept="image/*" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 cursor-pointer border border-dashed border-slate-300 rounded-lg p-1.5 bg-slate-50/50">
                     </div>
                     
-                    <button type="submit" id="submitBtn" class="w-full bg-slate-800 text-white text-sm font-semibold py-3 rounded-lg shadow transition-all active:scale-[0.98]">
-                        KAYDET
-                    </button>
+                    <div class="flex gap-3 mt-4">
+                        <button type="submit" id="submitBtn" class="flex-1 bg-slate-800 text-white text-sm font-semibold py-3.5 rounded-xl hover:bg-slate-900 transition-all active:scale-[0.98] shadow-lg tracking-wider">KAYDET</button>
+                        <button type="button" id="cancelEditBtn" onclick="cancelEdit()" class="hidden flex-1 bg-red-100 text-red-600 text-sm font-semibold py-3.5 rounded-xl hover:bg-red-200 transition-all active:scale-[0.98] shadow-sm tracking-wider">İPTAL</button>
+                    </div>
                 </form>
             </div>
             
@@ -183,7 +189,14 @@
 
     <script>
         const bugun = new Date().toISOString().split('T')[0];
-        let state = { cat: '', sub: '' };
+        document.getElementById('newFolderDate').value = bugun;
+        document.getElementById('tarihInputDisplay').value = bugun;
+        document.getElementById('hiddenTarihInput').value = bugun;
+
+        let state = { cat: '', sub: '', folderDate: bugun };
+        let existingFoldersData = {};
+        let loadedAnilar = [];
+        let slideshowInterval;
         const usesFolders = ['Seyahat', 'Aktivite'];
 
         function getDriveImgUrl(link) {
@@ -212,7 +225,7 @@
 
                     if (photos.length > 1) {
                         let current = 0;
-                        setInterval(() => {
+                        slideshowInterval = setInterval(() => {
                             const imgs = cont.querySelectorAll('img');
                             imgs[current].classList.replace('opacity-100', 'opacity-0');
                             current = (current + 1) % imgs.length;
@@ -239,25 +252,34 @@
             document.getElementById('detailView').classList.remove('hidden');
             
             const inFolder = usesFolders.includes(state.cat);
-            const isRated = (state.cat === 'Film' || state.cat === 'Yemek');
-
-            // Başlık gizleme/gösterme
             document.getElementById('inputGroup').classList.toggle('hidden', inFolder);
             document.getElementById('baslikInput').required = !inFolder;
             document.getElementById('baslikInput').value = inFolder ? "Fotoğraf" : "";
             
             // Puanlama alanını göster/gizle
+            const isRated = (state.cat === 'Film' || state.cat === 'Yemek');
             document.getElementById('puanContainer').classList.toggle('hidden', !isRated);
 
             // Puanları sıfırla
-            document.getElementById('puan1Input').value = "7";
-            document.getElementById('puan1Deger').innerText = "7.0";
-            document.getElementById('puan2Input').value = "7";
-            document.getElementById('puan2Deger').innerText = "7.0";
+            if(isRated) {
+                document.getElementById('puan1Input').value = "7";
+                document.getElementById('puan1Deger').innerText = "7.0";
+                document.getElementById('puan2Input').value = "7";
+                document.getElementById('puan2Deger').innerText = "7.0";
+            }
             
             document.getElementById('formKategori').value = state.cat;
             document.getElementById('formSubKategori').value = sub;
-            document.getElementById('hiddenTarihInput').value = dateVal || bugun;
+            
+            if (dateVal) state.folderDate = dateVal;
+            
+            if (inFolder) {
+                document.getElementById('hiddenTarihInput').value = state.folderDate;
+            } else {
+                document.getElementById('hiddenTarihInput').value = dateVal || bugun;
+                document.getElementById('tarihInputDisplay').value = dateVal || bugun;
+            }
+
             document.getElementById('subCategoryTitle').innerText = sub;
             
             loadAnilar(state.cat, sub);
@@ -269,15 +291,25 @@
             try {
                 const res = await fetch('/api/anilar');
                 const data = await res.json();
-                const folders = [...new Set(data.filter(a => a.kategori === kat).map(a => a.sub_kategori))];
+                
+                existingFoldersData = {};
+                data.forEach(a => {
+                    if (a.kategori === kat && !existingFoldersData[a.sub_kategori]) {
+                        existingFoldersData[a.sub_kategori] = a.tarih;
+                    }
+                });
+                
+                const folders = Object.keys(existingFoldersData);
+
                 if (folders.length === 0) {
                     list.innerHTML = '<p class="col-span-full py-6 text-center text-slate-400 text-xs">Klasör bulunamadı.</p>';
                     return;
                 }
                 list.innerHTML = folders.map(f => `
-                    <button onclick="openFolder('${f}', '${bugun}')" class="bg-white rounded-xl shadow-sm border border-slate-100 active:scale-[0.98] text-left p-4">
+                    <button onclick="openFolder('${f}', '${existingFoldersData[f]}')" class="bg-white rounded-xl shadow-sm border border-slate-100 active:scale-[0.98] text-left p-4 hover:-translate-y-1 transition-all">
                         <svg class="w-6 h-6 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
                         <h3 class="font-bold text-slate-700 text-sm truncate">${f}</h3>
+                        <span class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider flex items-center gap-1">📅 ${existingFoldersData[f] || 'Tarih Yok'}</span>
                     </button>
                 `).join('');
             } catch(e) {
@@ -291,21 +323,20 @@
             try {
                 const res = await fetch('/api/anilar');
                 const data = await res.json();
-                const filtered = data.filter(a => a.kategori === kat && a.sub_kategori === sub);
+                loadedAnilar = data.filter(a => a.kategori === kat && a.sub_kategori === sub);
                 
-                if (filtered.length === 0) {
+                if (loadedAnilar.length === 0) {
                     list.innerHTML = '<div class="text-center py-8"><p class="text-slate-400 text-xs">İlk anınızı ekleyin.</p></div>';
                     return;
                 }
 
-                list.innerHTML = filtered.map(ani => {
+                list.innerHTML = loadedAnilar.map(ani => {
                     const imgUrl = getDriveImgUrl(ani.gorsel_link);
                     const isRated = (ani.kategori === 'Film' || ani.kategori === 'Yemek');
                     
                     let puanHtml = '';
                     if (isRated && ani.puan && ani.puan !== "0") {
                         if (ani.puan.includes('|')) {
-                            // C:8.5|P:9.0 Formatı ayrıştırma
                             const parts = ani.puan.split('|');
                             const cPuan = parts[0] ? parts[0].replace('C:', '').trim() : '0';
                             const pPuan = parts[1] ? parts[1].replace('P:', '').trim() : '0';
@@ -315,20 +346,31 @@
                                 <span class="text-[11px] font-bold text-orange-600 bg-orange-50 border border-orange-100 px-2.5 py-1 rounded-lg shadow-sm flex items-center gap-1">Sude: ${pPuan} <span class="text-orange-400">★</span></span>
                             </div>`;
                         } else {
-                            // Eski formatı desteklemek için
                             puanHtml = `<div class="mt-3 text-[11px] font-bold text-yellow-600 bg-yellow-50 border border-yellow-100 px-2.5 py-1 rounded-lg w-max shadow-sm">Ortalama Puan: ${ani.puan} ★</div>`;
                         }
                     }
 
                     return `
-                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative group hover:shadow-md transition-all">
+                            <!-- Aksiyon Butonları -->
+                            <div class="absolute top-2 right-2 flex gap-1 z-10 opacity-80 group-hover:opacity-100">
+                                <button onclick="editAni('${ani.id}')" class="bg-white/80 backdrop-blur-sm text-slate-500 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg shadow-sm border border-slate-100" title="Düzenle">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                </button>
+                                <button onclick="deleteAni('${ani.id}')" class="bg-white/80 backdrop-blur-sm text-slate-500 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg shadow-sm border border-slate-100" title="Sil">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
+
                             ${imgUrl ? `
-                                <img src="${imgUrl}" onclick="openLightbox('${imgUrl}')" class="w-full h-48 object-cover rounded-lg mb-3" onerror="this.style.display='none'">
+                                <img src="${imgUrl}" onclick="openLightbox('${imgUrl}')" class="w-full h-48 object-cover rounded-lg mb-3 cursor-pointer hover:opacity-90 transition-opacity" onerror="this.style.display='none'">
                             ` : ''}
-                            <h3 class="font-bold text-slate-800 text-sm sm:text-base">${ani.baslik}</h3>
-                            ${ani.notlar ? `<p class="text-slate-600 mt-1 text-xs sm:text-sm">${ani.notlar}</p>` : ''}
+                            <div class="pr-16">
+                                <h3 class="font-bold text-slate-800 text-sm sm:text-base leading-tight">${ani.baslik}</h3>
+                            </div>
+                            ${ani.notlar ? `<p class="text-slate-600 mt-2 text-xs sm:text-sm bg-slate-50 p-3 rounded-lg">${ani.notlar}</p>` : ''}
                             ${puanHtml}
-                            <p class="text-[10px] text-slate-400 mt-3">${ani.tarih}</p>
+                            <p class="text-[10px] font-bold text-slate-400 mt-3 bg-slate-100 px-2 py-1 rounded w-max">${ani.tarih}</p>
                         </div>
                     `;
                 }).join('');
@@ -337,15 +379,86 @@
             }
         }
 
+        async function deleteAni(id) {
+            if (!confirm("Bu anıyı tamamen silmek istediğinize emin misiniz? (Geri alınamaz)")) return;
+            
+            try {
+                const formData = new FormData();
+                formData.append('id', id);
+                const res = await fetch('/api/ani_sil', { method: 'POST', body: formData });
+                if (res.ok) {
+                    loadAnilar(state.cat, state.sub);
+                } else {
+                    alert("Silinirken bir hata oluştu.");
+                }
+            } catch(e) {
+                alert("Silme işlemi başarısız.");
+            }
+        }
+
+        function editAni(id) {
+            const ani = loadedAnilar.find(a => a.id === id);
+            if (!ani) return;
+
+            document.getElementById('formAniId').value = ani.id;
+            document.getElementById('baslikInput').value = ani.baslik || '';
+            document.getElementById('notlarInput').value = ani.notlar || '';
+            
+            const inFolder = usesFolders.includes(state.cat);
+            if (!inFolder) {
+                document.getElementById('tarihInputDisplay').value = ani.tarih;
+            }
+            document.getElementById('hiddenTarihInput').value = ani.tarih;
+
+            if (state.cat === 'Film' || state.cat === 'Yemek') {
+                if (ani.puan && ani.puan.includes('|')) {
+                    const parts = ani.puan.split('|');
+                    const cPuan = parts[0] ? parts[0].replace('C:', '').trim() : '0';
+                    const pPuan = parts[1] ? parts[1].replace('P:', '').trim() : '0';
+                    document.getElementById('puan1Input').value = cPuan;
+                    document.getElementById('puan1Deger').innerText = parseFloat(cPuan).toFixed(1);
+                    document.getElementById('puan2Input').value = pPuan;
+                    document.getElementById('puan2Deger').innerText = parseFloat(pPuan).toFixed(1);
+                }
+            }
+
+            document.getElementById('submitBtn').innerText = "GÜNCELLE";
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+            document.getElementById('detailView').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelEdit() {
+            document.getElementById('aniForm').reset();
+            document.getElementById('formAniId').value = '';
+            document.getElementById('submitBtn').innerText = "KAYDET";
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+            
+            if(usesFolders.includes(state.cat)){
+                document.getElementById('hiddenTarihInput').value = state.folderDate;
+            } else {
+                document.getElementById('hiddenTarihInput').value = bugun;
+                document.getElementById('tarihInputDisplay').value = bugun;
+            }
+
+            if (state.cat === 'Film' || state.cat === 'Yemek') {
+                document.getElementById('puan1Input').value = 7;
+                document.getElementById('puan2Input').value = 7;
+                document.getElementById('puan1Deger').innerText = '7.0';
+                document.getElementById('puan2Deger').innerText = '7.0';
+            }
+        }
+
         async function saveAni(event) {
             event.preventDefault();
             const btn = document.getElementById('submitBtn');
+            const isEditing = document.getElementById('formAniId').value !== '';
+            
             btn.disabled = true; 
-            btn.innerText = "KAYDEDİLİYOR...";
+            btn.innerText = "YÜKLENİYOR...";
             
             const formData = new FormData(document.getElementById('aniForm'));
             
-            // Eğer kategori Film veya Yemek ise iki puanı birleştir
             if (state.cat === 'Film' || state.cat === 'Yemek') {
                 const p1 = document.getElementById('puan1Input').value;
                 const p2 = document.getElementById('puan2Input').value;
@@ -355,28 +468,37 @@
             }
 
             try {
-                const res = await fetch('/api/ani_ekle', { method: 'POST', body: formData });
-                if(res.ok) { location.reload(); }
+                const endpoint = isEditing ? '/api/ani_duzenle' : '/api/ani_ekle';
+                const res = await fetch(endpoint, { method: 'POST', body: formData });
+                if(res.ok) { 
+                    cancelEdit();
+                    loadAnilar(state.cat, state.sub); 
+                }
                 else {
                     const err = await res.json();
                     alert('Hata: ' + (err.hata || 'Bilinmeyen hata'));
-                    btn.disabled = false; btn.innerText = "KAYDET";
                 }
             } catch(e) { 
                 alert('Sunucuya bağlanılamadı.'); 
-                btn.disabled = false; btn.innerText = "KAYDET";
             }
+            
+            btn.disabled = false; 
+            btn.innerText = isEditing ? "GÜNCELLE" : "KAYDET";
         }
 
         function createFolder() {
             const name = document.getElementById('newFolderInput').value.trim();
             const d = document.getElementById('newFolderDate').value;
-            if(name) openFolder(name, d);
+            if(name) {
+                document.getElementById('newFolderInput').value = '';
+                openFolder(name, d);
+            }
         }
 
         function goHome() { location.reload(); }
         
         function goBackFromDetail() { 
+            cancelEdit();
             document.getElementById('detailView').classList.add('hidden');
             if(usesFolders.includes(state.cat)) {
                 document.getElementById('folderView').classList.remove('hidden');
@@ -390,6 +512,7 @@
 
         function closeLightbox() { 
             document.getElementById('lightbox').classList.add('hidden'); 
+            document.getElementById('lightboxImg').src = '';
         }
     </script>
 </body>
