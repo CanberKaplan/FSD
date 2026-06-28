@@ -68,9 +68,6 @@ def anilari_getir():
 @app.route('/api/ani_ekle', methods=['POST'])
 def ani_ekle():
     global drive_service, sheets_service
-    if not drive_service or not sheets_service:
-        drive_service, sheets_service = get_google_services()
-
     try:
         baslik = request.form.get('baslik', 'Fotoğraf')
         notlar = request.form.get('notlar', '')
@@ -88,34 +85,71 @@ def ani_ekle():
             foto.save(temp_path)
             with open(temp_path, 'rb') as f:
                 media = MediaIoBaseUpload(f, mimetype=foto.content_type, resumable=True)
-                file = drive_service.files().create(
-                    body={'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]},
-                    media_body=media,
-                    fields='id'
-                ).execute()
+                file = drive_service.files().create(body={'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]}, media_body=media, fields='id').execute()
                 file_id = file.get('id')
-
-                # webViewLink yerine direkt <img> tag'inde çalışan thumbnail URL'si
                 dogrudan_gorsel_linki = f"https://drive.google.com/thumbnail?id={file_id}&sz=w800"
-                
-                try:
-                    drive_service.permissions().create(
-                        fileId=file_id,
-                        body={'type': 'anyone', 'role': 'reader'}
-                    ).execute()
-                except:
-                    pass
-
+                try: drive_service.permissions().create(fileId=file_id, body={'type': 'anyone', 'role': 'reader'}).execute()
+                except: pass
             os.remove(temp_path)
 
         sheets_service.spreadsheets().values().append(
             spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME, valueInputOption="USER_ENTERED",
             body={"values": [[uuid.uuid4().hex[:8], baslik, notlar, tarih, dogrudan_gorsel_linki, kategori, sub_kategori, puan]]}
         ).execute()
-
         return jsonify({"mesaj": "Anı eklendi!"})
     except Exception as e:
         return jsonify({"hata": str(e)}), 500
+
+@app.route('/api/ani_sil', methods=['POST'])
+def ani_sil():
+    global sheets_service
+    ani_id = request.form.get('id')
+    try:
+        values = sheets_service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute().get('values', [])
+        row_index = next((i for i, r in enumerate(values) if r and r[0] == ani_id), -1)
+        if row_index == -1: return jsonify({"hata": "Kayıt bulunamadı"}), 404
+        
+        sheet_id = sheets_service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()['sheets'][0]['properties']['sheetId']
+        sheets_service.spreadsheets().batchUpdate(spreadsheetId=SPREADSHEET_ID, body={"requests": [{"deleteDimension": {"range": {"sheetId": sheet_id, "dimension": "ROWS", "startIndex": row_index, "endIndex": row_index + 1}}}]}).execute()
+        return jsonify({"mesaj": "Silindi"})
+    except Exception as e: return jsonify({"hata": str(e)}), 500
+
+@app.route('/api/ani_duzenle', methods=['POST'])
+def ani_duzenle():
+    global drive_service, sheets_service
+    ani_id = request.form.get('id')
+    baslik = request.form.get('baslik', 'Fotoğraf')
+    notlar = request.form.get('notlar', '')
+    tarih = request.form.get('tarih')
+    kategori = request.form.get('kategori', 'Diğer')
+    sub_kategori = request.form.get('sub_kategori', 'Genel')
+    puan = request.form.get('puan', 0)
+    foto = request.files.get('foto')
+
+    try:
+        values = sheets_service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute().get('values', [])
+        row_index = next((i for i, r in enumerate(values) if r and r[0] == ani_id), -1)
+        if row_index == -1: return jsonify({"hata": "Kayıt bulunamadı"}), 404
+        
+        gorsel_linki = values[row_index][4]
+        if foto and foto.filename:
+            orijinal_isim = secure_filename(foto.filename)
+            temp_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4().hex[:8]}_{orijinal_isim}")
+            foto.save(temp_path)
+            with open(temp_path, 'rb') as f:
+                media = MediaIoBaseUpload(f, mimetype=foto.content_type, resumable=True)
+                file = drive_service.files().create(body={'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]}, media_body=media, fields='id').execute()
+                gorsel_linki = f"https://drive.google.com/thumbnail?id={file.get('id')}&sz=w800"
+                try: drive_service.permissions().create(fileId=file.get('id'), body={'type': 'anyone', 'role': 'reader'}).execute()
+                except: pass
+            os.remove(temp_path)
+
+        sheets_service.spreadsheets().values().update(
+            spreadsheetId=SPREADSHEET_ID, range=f"Sayfa1!A{row_index+1}:H{row_index+1}", valueInputOption="USER_ENTERED",
+            body={"values": [[ani_id, baslik, notlar, tarih, gorsel_linki, kategori, sub_kategori, puan]]}
+        ).execute()
+        return jsonify({"mesaj": "Güncellendi"})
+    except Exception as e: return jsonify({"hata": str(e)}), 500
 
 @app.route('/')
 def index(): return send_from_directory('public', 'index.html')
