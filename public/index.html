@@ -10,22 +10,20 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,900&display=swap" rel="stylesheet">
 </head>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,900&display=swap" rel="stylesheet">
 <body class="bg-slate-50 min-h-screen font-sans antialiased text-slate-800 selection:bg-blue-200 selection:text-blue-900">
     
     <!-- Mobil odaklı ana taşıyıcı, kenar boşlukları daraltıldı -->
     <div class="relative max-w-3xl mx-auto p-3 pb-20">
 
-        <!-- 13 Ocak 2019 Gün Sayacı -->
-        <div class="absolute top-5 right-4 sm:right-6 bg-white/80 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-sm border border-slate-200 text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-1.5 z-50">
-            <span class="text-red-500 text-sm animate-pulse">❤️</span>
+        <!-- 13 Ocak 2019 Gün Sayacı (Kalpsiz) -->
+        <div class="absolute top-5 right-4 sm:right-6 bg-white/80 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-sm border border-slate-200 text-xs sm:text-sm font-bold text-slate-700 flex items-center z-50">
             <span id="dayCounter">Hesaplanıyor...</span>
         </div>
         
-        <!-- Minimalist Tipografik SC Logosu -->
+        <!-- Minimalist Tipografik SC Logosu (Mavi ve Turuncu) -->
         <header class="flex flex-col items-center justify-center w-full py-10 mb-4 select-none">
-
             <svg viewBox="0 0 680 480" width="160" role="img" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <clipPath id="top-half">
@@ -42,8 +40,8 @@
             <text x="360" y="360" font-family="'Playfair Display', Georgia, serif" font-size="380" font-weight="900" font-style="italic" text-anchor="middle" dominant-baseline="middle" fill="none" stroke="#F97316" stroke-width="18" clip-path="url(#top-half)">C</text>
             <text x="360" y="360" font-family="'Playfair Display', Georgia, serif" font-size="380" font-weight="900" font-style="italic" text-anchor="middle" dominant-baseline="middle" fill="none" stroke="#F97316" stroke-width="5" clip-path="url(#top-half)">C</text>
             </svg>
-
         </header>
+
         <!-- Home View -->
         <div id="homeView" class="space-y-4 animate-fade-in">
             
@@ -52,43 +50,36 @@
                 <div id="slideshowContainer" class="absolute inset-0 w-full h-full"></div>
             </div>
 
-            <!-- Alt Kısım: MOBİLDE DE YAN YANA (grid-cols-2) -->
+            <!-- Alt Kısım: Butonlar -->
             <div class="grid grid-cols-2 gap-3 sm:gap-4">
-                
-                <!-- Sol Sütun: Butonlar -->
                 <div class="flex flex-col gap-y-3">
-                    
                     <button onclick="navigate('Seyahat')" class="group flex items-center justify-between w-full bg-white py-4 px-3 sm:px-5 font-semibold text-slate-700 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:bg-blue-50/50 transition-all active:scale-[0.98]">
                         <div class="flex items-center gap-2.5 sm:gap-4">
                             <span class="w-1.5 h-5 rounded-full bg-blue-500"></span>
                             <span class="tracking-wide text-xs sm:text-sm">SEYAHAT</span>
                         </div>
                     </button>
-
                     <button onclick="navigate('Yemek')" class="group flex items-center justify-between w-full bg-white py-4 px-3 sm:px-5 font-semibold text-slate-700 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:bg-orange-50/50 transition-all active:scale-[0.98]">
                         <div class="flex items-center gap-2.5 sm:gap-4">
                             <span class="w-1.5 h-5 rounded-full bg-orange-500"></span>
                             <span class="tracking-wide text-xs sm:text-sm">YEMEK</span>
                         </div>
                     </button>
-
                     <button onclick="navigate('Film')" class="group flex items-center justify-between w-full bg-white py-4 px-3 sm:px-5 font-semibold text-slate-700 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:bg-violet-50/50 transition-all active:scale-[0.98]">
                         <div class="flex items-center gap-2.5 sm:gap-4">
                             <span class="w-1.5 h-5 rounded-full bg-violet-500"></span>
                             <span class="tracking-wide text-xs sm:text-sm">FİLM</span>
                         </div>
                     </button>
-
                     <button onclick="navigate('Aktivite')" class="group flex items-center justify-between w-full bg-white py-4 px-3 sm:px-5 font-semibold text-slate-700 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:bg-emerald-50/50 transition-all active:scale-[0.98]">
                         <div class="flex items-center gap-2.5 sm:gap-4">
                             <span class="w-1.5 h-5 rounded-full bg-emerald-500"></span>
                             <span class="tracking-wide text-xs sm:text-sm">AKTİVİTE</span>
                         </div>
                     </button>
-                    
                 </div>
 
-                <!-- Sağ Sütun: Boş Kutu (Mobilde tam hizalı) -->
+                <!-- Sağ Sütun: Boş Kutu -->
                 <div class="bg-white/60 backdrop-blur-sm rounded-xl sm:rounded-2xl border-2 border-dashed border-slate-200 shadow-sm flex flex-col items-center justify-center p-4 h-full hover:bg-white/80 transition-colors">
                     <div class="w-10 h-10 sm:w-14 sm:h-14 bg-slate-100 rounded-full flex items-center justify-center mb-3">
                         <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
@@ -97,7 +88,6 @@
                         Yeni modüller için<br>çalışma alanı
                     </p>
                 </div>
-
             </div>
         </div>
 
@@ -109,7 +99,6 @@
             </button>
             <h2 id="folderTitle" class="text-xl sm:text-2xl font-bold text-slate-800 text-center uppercase tracking-widest pb-3 border-b border-slate-200"></h2>
             
-            <!-- Mobilde daha net görünsün diye gap-3 -->
             <div id="folderList" class="grid grid-cols-2 gap-3 sm:gap-4"></div>
             
             <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-100 mt-6">
@@ -149,16 +138,16 @@
                         </div>
                     </div>
                     
-                    <!-- Puanlama Alanı (Sadece Film ve Yemek için görünür) -->
+                    <!-- Puanlama Alanı (Sadece Film ve Yemek için görünür, Canberk & Sude) -->
                     <div id="puanContainer" class="hidden space-y-3 pt-4 border-t border-slate-100">
                         <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Değerlendirme (10 Üzerinden)</h3>
                         <div class="grid grid-cols-2 gap-3">
-                            <!-- Canberk'in Puanı -->
+                            <!-- Canberk'in Puanı (Mavi) -->
                             <div class="bg-blue-50/50 p-3 rounded-xl border border-blue-100/50">
                                 <label class="block text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-2">Canberk: <span id="puan1Deger" class="text-blue-700 text-sm">7.0</span></label>
                                 <input type="range" id="puan1Input" min="0" max="10" step="0.5" value="7" oninput="document.getElementById('puan1Deger').innerText = parseFloat(this.value).toFixed(1)" class="w-full accent-blue-500 h-1.5 bg-blue-200 rounded-lg appearance-none cursor-pointer">
                             </div>
-                            <!-- Sude'nin Puanı -->
+                            <!-- Sude'nin Puanı (Turuncu) -->
                             <div class="bg-orange-50/50 p-3 rounded-xl border border-orange-100/50">
                                 <label class="block text-[10px] font-bold text-orange-500 uppercase tracking-wider mb-2">Sude: <span id="puan2Deger" class="text-orange-700 text-sm">7.0</span></label>
                                 <input type="range" id="puan2Input" min="0" max="10" step="0.5" value="7" oninput="document.getElementById('puan2Deger').innerText = parseFloat(this.value).toFixed(1)" class="w-full accent-orange-500 h-1.5 bg-orange-200 rounded-lg appearance-none cursor-pointer">
@@ -201,7 +190,7 @@
         let slideshowInterval;
         const usesFolders = ['Seyahat', 'Aktivite'];
 
-        // Sayfa yüklendiğinde sayacı hesapla ve slaytı başlat
+        // --- SADECE BİR KERE YAZILAN WINDOW.ONLOAD ---
         window.onload = () => { 
             hesaplaGunSayaci();
             initSlideshow(); 
@@ -213,7 +202,7 @@
             const suAnkiTarih = new Date();
             const zamanFarki = suAnkiTarih - baslangicTarihi;
             const gecenGun = Math.floor(zamanFarki / (1000 * 60 * 60 * 24));
-            document.getElementById('dayCounter').innerText = gecenGun + " Gün";
+            document.getElementById('dayCounter').innerText = gecenGun;
         }
 
         function getDriveImgUrl(link) {
@@ -225,8 +214,6 @@
             if (matchId) return `https://drive.google.com/thumbnail?id=${matchId[1]}&sz=w800`;
             return link;
         }
-
-        window.onload = () => { initSlideshow(); };
 
         async function initSlideshow() {
             try {
@@ -273,11 +260,9 @@
             document.getElementById('baslikInput').required = !inFolder;
             document.getElementById('baslikInput').value = inFolder ? "Fotoğraf" : "";
             
-            // Puanlama alanını göster/gizle
             const isRated = (state.cat === 'Film' || state.cat === 'Yemek');
             document.getElementById('puanContainer').classList.toggle('hidden', !isRated);
 
-            // Puanları sıfırla
             if(isRated) {
                 document.getElementById('puan1Input').value = "7";
                 document.getElementById('puan1Deger').innerText = "7.0";
@@ -369,7 +354,7 @@
 
                     return `
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative group hover:shadow-md transition-all">
-                            <!-- Aksiyon Butonları -->
+                            <!-- Aksiyon Butonları (Düzenle ve Sil) -->
                             <div class="absolute top-2 right-2 flex gap-1 z-10 opacity-80 group-hover:opacity-100">
                                 <button onclick="editAni('${ani.id}')" class="bg-white/80 backdrop-blur-sm text-slate-500 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg shadow-sm border border-slate-100" title="Düzenle">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
