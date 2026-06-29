@@ -15,7 +15,13 @@
 <body class="bg-slate-50 min-h-screen font-sans antialiased text-slate-800 selection:bg-blue-200 selection:text-blue-900">
     
     <!-- Mobil odaklı ana taşıyıcı, kenar boşlukları daraltıldı -->
-    <div class="max-w-3xl mx-auto p-3 pb-20">
+    <div class="relative max-w-3xl mx-auto p-3 pb-20">
+
+        <!-- 13 Ocak 2019 Gün Sayacı -->
+        <div class="absolute top-5 right-4 sm:right-6 bg-white/80 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-sm border border-slate-200 text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-1.5 z-50">
+            <span class="text-red-500 text-sm animate-pulse">❤️</span>
+            <span id="dayCounter">Hesaplanıyor...</span>
+        </div>
         
         <!-- Minimalist Tipografik SC Logosu -->
         <header class="flex flex-col items-center justify-center w-full py-10 mb-4 select-none">
@@ -41,13 +47,9 @@
         <!-- Home View -->
         <div id="homeView" class="space-y-4 animate-fade-in">
             
-            <!-- DİJİTAL ANILAR: Banner mobilde daha ince ayarlandı -->
-            <div id="homeHero" class="group relative w-full h-36 sm:h-48 bg-slate-800 rounded-2xl shadow-md flex items-center justify-center border border-slate-700/50 overflow-hidden">
+            <!-- Slayt Alanı: Yükseklik artırıldı (h-56 ve sm:h-72), yazı ve siyahlık kaldırıldı -->
+            <div id="homeHero" class="group relative w-full h-56 sm:h-72 bg-slate-100 rounded-2xl shadow-md flex items-center justify-center border border-slate-200 overflow-hidden">
                 <div id="slideshowContainer" class="absolute inset-0 w-full h-full"></div>
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/40 to-transparent z-10"></div>
-                <p class="relative z-20 text-white font-bold tracking-[0.3em] sm:tracking-[0.4em] uppercase text-xs sm:text-sm drop-shadow-lg opacity-90 group-hover:opacity-100 transition-opacity">
-                    DİJİTAL ANILAR
-                </p>
             </div>
 
             <!-- Alt Kısım: MOBİLDE DE YAN YANA (grid-cols-2) -->
@@ -198,6 +200,21 @@
         let loadedAnilar = [];
         let slideshowInterval;
         const usesFolders = ['Seyahat', 'Aktivite'];
+
+        // Sayfa yüklendiğinde sayacı hesapla ve slaytı başlat
+        window.onload = () => { 
+            hesaplaGunSayaci();
+            initSlideshow(); 
+        };
+
+        // 13 Ocak 2019'dan itibaren gün sayan fonksiyon
+        function hesaplaGunSayaci() {
+            const baslangicTarihi = new Date('2019-01-13T00:00:00');
+            const suAnkiTarih = new Date();
+            const zamanFarki = suAnkiTarih - baslangicTarihi;
+            const gecenGun = Math.floor(zamanFarki / (1000 * 60 * 60 * 24));
+            document.getElementById('dayCounter').innerText = gecenGun + " Gün";
+        }
 
         function getDriveImgUrl(link) {
             if (!link || link === 'NO_IMAGE') return null;
