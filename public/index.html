@@ -9,29 +9,58 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        /* Notes module */
+        .note-card { background: white; border-radius: 10px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 7px; }
+        .note-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 11px; cursor: pointer; user-select: none; gap: 6px; }
+        .note-title { font-size: 11px; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .note-meta { font-size: 10px; color: #94a3b8; margin-top: 1px; }
+        .note-progress { height: 2px; background: #f1f5f9; border-radius: 2px; overflow: hidden; margin-top: 3px; width: 72px; }
+        .note-progress-fill { height: 100%; background: #3b82f6; border-radius: 2px; transition: width 0.3s; }
+        .note-body { padding: 6px 11px 11px; border-top: 1px solid #f1f5f9; }
+        .checklist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }
+        .check-item { display: flex; align-items: center; gap: 7px; }
+        .check-item input[type=checkbox] { width: 13px; height: 13px; accent-color: #3b82f6; flex-shrink: 0; cursor: pointer; }
+        .check-item label { font-size: 11px; color: #334155; cursor: pointer; flex: 1; line-height: 1.35; }
+        .check-item.done label { text-decoration: line-through; color: #94a3b8; }
+        .check-item .del-item { opacity: 0; background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 11px; padding: 1px 3px; border-radius: 3px; line-height: 1; flex-shrink: 0; }
+        .check-item:hover .del-item { opacity: 1; }
+        .check-item .del-item:hover { color: #ef4444; background: #fee2e2; }
+        .add-item-row { display: flex; gap: 5px; margin-top: 7px; padding-top: 7px; border-top: 1px dashed #e2e8f0; }
+        .add-item-row input { flex: 1; font-size: 11px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 5px 7px; color: #334155; outline: none; min-width: 0; }
+        .add-item-row input:focus { border-color: #93c5fd; background: white; }
+        .add-item-row button { font-size: 10px; font-weight: 700; background: #3b82f6; color: white; border: none; border-radius: 6px; padding: 5px 9px; cursor: pointer; white-space: nowrap; }
+        .add-item-row button:hover { background: #2563eb; }
+        .note-chevron { font-size: 9px; color: #cbd5e1; transition: transform 0.2s; flex-shrink: 0; }
+        .note-chevron.open { transform: rotate(90deg); }
+        .note-del-btn { background: none; border: none; cursor: pointer; color: #cbd5e1; padding: 2px; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .note-del-btn:hover { color: #ef4444; background: #fee2e2; }
+        .notes-add-form { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 9px; padding: 9px; margin-bottom: 7px; }
+        .notes-add-form input { width: 100%; font-size: 11px; background: white; border: 1px solid #dbeafe; border-radius: 6px; padding: 6px 9px; color: #1e293b; outline: none; box-sizing: border-box; }
+        .notes-add-form input:focus { border-color: #3b82f6; }
+        .notes-form-btns { display: flex; gap: 5px; margin-top: 6px; }
+        .notes-form-btns .btn-ok { flex: 1; font-size: 11px; font-weight: 700; background: #3b82f6; color: white; border: none; border-radius: 6px; padding: 6px; cursor: pointer; }
+        .notes-form-btns .btn-ok:hover { background: #2563eb; }
+        .notes-form-btns .btn-cancel { font-size: 11px; color: #64748b; background: none; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+        .notes-empty { text-align: center; padding: 18px 0; color: #cbd5e1; font-size: 11px; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,900&display=swap" rel="stylesheet">
 </head>
 <body class="bg-slate-50 min-h-screen font-sans antialiased text-slate-800 selection:bg-blue-200 selection:text-blue-900">
     
-    <!-- Mobil odaklı ana taşıyıcı, kenar boşlukları daraltıldı -->
     <div class="relative max-w-3xl mx-auto p-3 pb-20">
 
-        <!-- 13 Ocak 2019 Gün Sayacı (Kalpsiz) -->
+        <!-- Day Counter -->
         <div class="absolute top-5 right-4 sm:right-6 bg-white/80 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-sm border border-slate-200 text-xs sm:text-sm font-bold text-slate-700 flex items-center z-50">
             <span id="dayCounter">Hesaplanıyor...</span>
         </div>
         
-        <!-- Minimalist Tipografik SC Logosu (Mavi ve Turuncu) -->
+        <!-- SC Logo -->
         <header class="flex flex-col items-center justify-center w-full py-10 mb-4 select-none">
             <svg viewBox="0 0 680 480" width="160" role="img" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <clipPath id="top-half">
-               <rect x="0" y="0" width="680" height="240"/>
-              </clipPath>
-              <clipPath id="bottom-half">
-               <rect x="0" y="240" width="680" height="240"/>
-              </clipPath>
+              <clipPath id="top-half"><rect x="0" y="0" width="680" height="240"/></clipPath>
+              <clipPath id="bottom-half"><rect x="0" y="240" width="680" height="240"/></clipPath>
             </defs>
              <text x="360" y="360" font-family="'Playfair Display', Georgia, serif" font-size="380" font-weight="900" font-style="italic" text-anchor="middle" dominant-baseline="middle" fill="none" stroke="#F97316" stroke-width="18" clip-path="url(#bottom-half)">C</text>
              <text x="360" y="360" font-family="'Playfair Display', Georgia, serif" font-size="380" font-weight="900" font-style="italic" text-anchor="middle" dominant-baseline="middle" fill="none" stroke="#F97316" stroke-width="5" clip-path="url(#bottom-half)">C</text>
@@ -45,13 +74,14 @@
         <!-- Home View -->
         <div id="homeView" class="space-y-4 animate-fade-in">
             
-            <!-- Slayt Alanı: Yükseklik artırıldı (h-56 ve sm:h-72), yazı ve siyahlık kaldırıldı -->
+            <!-- Hero Slideshow -->
             <div id="homeHero" class="group relative w-full h-56 sm:h-72 bg-slate-100 rounded-2xl shadow-md flex items-center justify-center border border-slate-200 overflow-hidden">
                 <div id="slideshowContainer" class="absolute inset-0 w-full h-full"></div>
             </div>
 
-            <!-- Alt Kısım: Butonlar -->
+            <!-- Bottom Grid -->
             <div class="grid grid-cols-2 gap-3 sm:gap-4">
+                <!-- Left: Category buttons -->
                 <div class="flex flex-col gap-y-3">
                     <button onclick="navigate('Seyahat')" class="group flex items-center justify-between w-full bg-white py-4 px-3 sm:px-5 font-semibold text-slate-700 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:bg-blue-50/50 transition-all active:scale-[0.98]">
                         <div class="flex items-center gap-2.5 sm:gap-4">
@@ -79,14 +109,32 @@
                     </button>
                 </div>
 
-                <!-- Sağ Sütun: Boş Kutu -->
-                <div class="bg-white/60 backdrop-blur-sm rounded-xl sm:rounded-2xl border-2 border-dashed border-slate-200 shadow-sm flex flex-col items-center justify-center p-4 h-full hover:bg-white/80 transition-colors">
-                    <div class="w-10 h-10 sm:w-14 sm:h-14 bg-slate-100 rounded-full flex items-center justify-center mb-3">
-                        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                <!-- Right: Notes Module -->
+                <div class="bg-white rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
+                    
+                    <!-- Notes Header -->
+                    <div class="flex items-center justify-between px-3 pt-3 pb-2 border-b border-slate-100 flex-shrink-0">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Notlar</span>
+                        <button onclick="notesToggleForm()" id="notesFabBtn" title="Yeni not ekle"
+                            class="w-5 h-5 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all active:scale-95 flex-shrink-0">
+                            <svg id="notesFabIcon" class="w-3 h-3 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                        </button>
                     </div>
-                    <p class="text-slate-500 text-[10px] sm:text-xs font-medium text-center leading-tight">
-                        Yeni modüller için<br>çalışma alanı
-                    </p>
+
+                    <!-- Notes Scrollable Body -->
+                    <div class="flex-1 overflow-y-auto p-2" style="max-height: 290px;">
+                        <div id="notesAddForm" class="notes-add-form" style="display:none;">
+                            <input type="text" id="notesTitleInput" placeholder="Not başlığı..." maxlength="40"
+                                onkeydown="if(event.key==='Enter') notesCreate(); if(event.key==='Escape') notesToggleForm();">
+                            <div class="notes-form-btns">
+                                <button class="btn-ok" onclick="notesCreate()">Oluştur</button>
+                                <button class="btn-cancel" onclick="notesToggleForm()">İptal</button>
+                            </div>
+                        </div>
+                        <div id="notesList"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -98,9 +146,7 @@
                 Geri Dön
             </button>
             <h2 id="folderTitle" class="text-xl sm:text-2xl font-bold text-slate-800 text-center uppercase tracking-widest pb-3 border-b border-slate-200"></h2>
-            
             <div id="folderList" class="grid grid-cols-2 gap-3 sm:gap-4"></div>
-            
             <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-100 mt-6">
                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">YENİ KLASÖR</h3>
                 <input type="text" id="newFolderInput" placeholder="Adı (Örn: Londra)" class="w-full p-2.5 sm:p-3 text-sm rounded-lg bg-slate-50 border border-transparent focus:border-slate-300 focus:bg-white mb-2 outline-none transition-all">
@@ -119,7 +165,6 @@
             
             <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
                 <div class="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-bl-full -z-10 opacity-50"></div>
-                
                 <form id="aniForm" onsubmit="saveAni(event)" class="space-y-5">
                     <input type="hidden" name="id" id="formAniId">
                     <input type="hidden" name="kategori" id="formKategori">
@@ -138,16 +183,13 @@
                         </div>
                     </div>
                     
-                    <!-- Puanlama Alanı (Sadece Film ve Yemek için görünür, Canberk & Sude) -->
                     <div id="puanContainer" class="hidden space-y-3 pt-4 border-t border-slate-100">
                         <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Değerlendirme (10 Üzerinden)</h3>
                         <div class="grid grid-cols-2 gap-3">
-                            <!-- Canberk'in Puanı (Mavi) -->
                             <div class="bg-blue-50/50 p-3 rounded-xl border border-blue-100/50">
                                 <label class="block text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-2">Canberk: <span id="puan1Deger" class="text-blue-700 text-sm">7.0</span></label>
                                 <input type="range" id="puan1Input" min="0" max="10" step="0.5" value="7" oninput="document.getElementById('puan1Deger').innerText = parseFloat(this.value).toFixed(1)" class="w-full accent-blue-500 h-1.5 bg-blue-200 rounded-lg appearance-none cursor-pointer">
                             </div>
-                            <!-- Sude'nin Puanı (Turuncu) -->
                             <div class="bg-orange-50/50 p-3 rounded-xl border border-orange-100/50">
                                 <label class="block text-[10px] font-bold text-orange-500 uppercase tracking-wider mb-2">Sude: <span id="puan2Deger" class="text-orange-700 text-sm">7.0</span></label>
                                 <input type="range" id="puan2Input" min="0" max="10" step="0.5" value="7" oninput="document.getElementById('puan2Deger').innerText = parseFloat(this.value).toFixed(1)" class="w-full accent-orange-500 h-1.5 bg-orange-200 rounded-lg appearance-none cursor-pointer">
@@ -190,19 +232,12 @@
         let slideshowInterval;
         const usesFolders = ['Seyahat', 'Aktivite'];
 
-        // --- SADECE BİR KERE YAZILAN WINDOW.ONLOAD ---
-        window.onload = () => { 
-            hesaplaGunSayaci();
-            initSlideshow(); 
-        };
+        window.onload = () => { hesaplaGunSayaci(); initSlideshow(); notesRender(); };
 
-        // 13 Ocak 2019'dan itibaren gün sayan fonksiyon
         function hesaplaGunSayaci() {
-            const baslangicTarihi = new Date('2019-01-13T00:00:00');
-            const suAnkiTarih = new Date();
-            const zamanFarki = suAnkiTarih - baslangicTarihi;
-            const gecenGun = Math.floor(zamanFarki / (1000 * 60 * 60 * 24));
-            document.getElementById('dayCounter').innerText = gecenGun + " Gün";
+            const baslangic = new Date('2019-01-13T00:00:00');
+            const gun = Math.floor((new Date() - baslangic) / 86400000);
+            document.getElementById('dayCounter').innerText = gun + " Gün";
         }
 
         function getDriveImgUrl(link) {
@@ -226,7 +261,6 @@
                         const imgUrl = getDriveImgUrl(p.gorsel_link);
                         return `<img src="${imgUrl}" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === 0 ? 'opacity-100' : 'opacity-0'}">`;
                     }).join('');
-
                     if (photos.length > 1) {
                         let current = 0;
                         slideshowInterval = setInterval(() => {
@@ -254,36 +288,28 @@
             state.sub = sub;
             document.getElementById('folderView').classList.add('hidden');
             document.getElementById('detailView').classList.remove('hidden');
-            
             const inFolder = usesFolders.includes(state.cat);
             document.getElementById('inputGroup').classList.toggle('hidden', inFolder);
             document.getElementById('baslikInput').required = !inFolder;
             document.getElementById('baslikInput').value = inFolder ? "Fotoğraf" : "";
-            
             const isRated = (state.cat === 'Film' || state.cat === 'Yemek');
             document.getElementById('puanContainer').classList.toggle('hidden', !isRated);
-
             if(isRated) {
                 document.getElementById('puan1Input').value = "7";
                 document.getElementById('puan1Deger').innerText = "7.0";
                 document.getElementById('puan2Input').value = "7";
                 document.getElementById('puan2Deger').innerText = "7.0";
             }
-            
             document.getElementById('formKategori').value = state.cat;
             document.getElementById('formSubKategori').value = sub;
-            
             if (dateVal) state.folderDate = dateVal;
-            
             if (inFolder) {
                 document.getElementById('hiddenTarihInput').value = state.folderDate;
             } else {
                 document.getElementById('hiddenTarihInput').value = dateVal || bugun;
                 document.getElementById('tarihInputDisplay').value = dateVal || bugun;
             }
-
             document.getElementById('subCategoryTitle').innerText = sub;
-            
             loadAnilar(state.cat, sub);
         }
 
@@ -293,16 +319,12 @@
             try {
                 const res = await fetch('/api/anilar');
                 const data = await res.json();
-                
                 existingFoldersData = {};
                 data.forEach(a => {
-                    if (a.kategori === kat && !existingFoldersData[a.sub_kategori]) {
+                    if (a.kategori === kat && !existingFoldersData[a.sub_kategori])
                         existingFoldersData[a.sub_kategori] = a.tarih;
-                    }
                 });
-                
                 const folders = Object.keys(existingFoldersData);
-
                 if (folders.length === 0) {
                     list.innerHTML = '<p class="col-span-full py-6 text-center text-slate-400 text-xs">Klasör bulunamadı.</p>';
                     return;
@@ -312,8 +334,7 @@
                         <svg class="w-6 h-6 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
                         <h3 class="font-bold text-slate-700 text-sm truncate">${f}</h3>
                         <span class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider flex items-center gap-1">📅 ${existingFoldersData[f] || 'Tarih Yok'}</span>
-                    </button>
-                `).join('');
+                    </button>`).join('');
             } catch(e) {
                 list.innerHTML = '<p class="col-span-full py-6 text-center text-red-400 text-xs">Hata oluştu.</p>';
             }
@@ -326,24 +347,20 @@
                 const res = await fetch('/api/anilar');
                 const data = await res.json();
                 loadedAnilar = data.filter(a => a.kategori === kat && a.sub_kategori === sub);
-                
                 if (loadedAnilar.length === 0) {
                     list.innerHTML = '<div class="text-center py-8"><p class="text-slate-400 text-xs">İlk anınızı ekleyin.</p></div>';
                     return;
                 }
-
                 list.innerHTML = loadedAnilar.map(ani => {
                     const imgUrl = getDriveImgUrl(ani.gorsel_link);
                     const isRated = (ani.kategori === 'Film' || ani.kategori === 'Yemek');
-                    
                     let puanHtml = '';
                     if (isRated && ani.puan && ani.puan !== "0") {
                         if (ani.puan.includes('|')) {
                             const parts = ani.puan.split('|');
                             const cPuan = parts[0] ? parts[0].replace('C:', '').trim() : '0';
                             const pPuan = parts[1] ? parts[1].replace('P:', '').trim() : '0';
-                            puanHtml = `
-                            <div class="mt-3 flex gap-2">
+                            puanHtml = `<div class="mt-3 flex gap-2">
                                 <span class="text-[11px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-lg shadow-sm flex items-center gap-1">Canberk: ${cPuan} <span class="text-blue-400">★</span></span>
                                 <span class="text-[11px] font-bold text-orange-600 bg-orange-50 border border-orange-100 px-2.5 py-1 rounded-lg shadow-sm flex items-center gap-1">Sude: ${pPuan} <span class="text-orange-400">★</span></span>
                             </div>`;
@@ -351,10 +368,8 @@
                             puanHtml = `<div class="mt-3 text-[11px] font-bold text-yellow-600 bg-yellow-50 border border-yellow-100 px-2.5 py-1 rounded-lg w-max shadow-sm">Ortalama Puan: ${ani.puan} ★</div>`;
                         }
                     }
-
                     return `
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative group hover:shadow-md transition-all">
-                            <!-- Aksiyon Butonları (Düzenle ve Sil) -->
                             <div class="absolute top-2 right-2 flex gap-1 z-10 opacity-80 group-hover:opacity-100">
                                 <button onclick="editAni('${ani.id}')" class="bg-white/80 backdrop-blur-sm text-slate-500 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg shadow-sm border border-slate-100" title="Düzenle">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -363,18 +378,14 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                 </button>
                             </div>
-
-                            ${imgUrl ? `
-                                <img src="${imgUrl}" onclick="openLightbox('${imgUrl}')" class="w-full h-48 object-cover rounded-lg mb-3 cursor-pointer hover:opacity-90 transition-opacity" onerror="this.style.display='none'">
-                            ` : ''}
+                            ${imgUrl ? `<img src="${imgUrl}" onclick="openLightbox('${imgUrl}')" class="w-full h-48 object-cover rounded-lg mb-3 cursor-pointer hover:opacity-90 transition-opacity" onerror="this.style.display='none'">` : ''}
                             <div class="pr-16">
                                 <h3 class="font-bold text-slate-800 text-sm sm:text-base leading-tight">${ani.baslik}</h3>
                             </div>
                             ${ani.notlar ? `<p class="text-slate-600 mt-2 text-xs sm:text-sm bg-slate-50 p-3 rounded-lg">${ani.notlar}</p>` : ''}
                             ${puanHtml}
                             <p class="text-[10px] font-bold text-slate-400 mt-3 bg-slate-100 px-2 py-1 rounded w-max">${ani.tarih}</p>
-                        </div>
-                    `;
+                        </div>`;
                 }).join('');
             } catch(e) {
                 list.innerHTML = '<p class="text-center text-red-400 text-xs py-6">Hata oluştu.</p>';
@@ -383,35 +394,24 @@
 
         async function deleteAni(id) {
             if (!confirm("Bu anıyı tamamen silmek istediğinize emin misiniz? (Geri alınamaz)")) return;
-            
             try {
                 const formData = new FormData();
                 formData.append('id', id);
                 const res = await fetch('/api/ani_sil', { method: 'POST', body: formData });
-                if (res.ok) {
-                    loadAnilar(state.cat, state.sub);
-                } else {
-                    alert("Silinirken bir hata oluştu.");
-                }
-            } catch(e) {
-                alert("Silme işlemi başarısız.");
-            }
+                if (res.ok) { loadAnilar(state.cat, state.sub); }
+                else { alert("Silinirken bir hata oluştu."); }
+            } catch(e) { alert("Silme işlemi başarısız."); }
         }
 
         function editAni(id) {
             const ani = loadedAnilar.find(a => a.id === id);
             if (!ani) return;
-
             document.getElementById('formAniId').value = ani.id;
             document.getElementById('baslikInput').value = ani.baslik || '';
             document.getElementById('notlarInput').value = ani.notlar || '';
-            
             const inFolder = usesFolders.includes(state.cat);
-            if (!inFolder) {
-                document.getElementById('tarihInputDisplay').value = ani.tarih;
-            }
+            if (!inFolder) document.getElementById('tarihInputDisplay').value = ani.tarih;
             document.getElementById('hiddenTarihInput').value = ani.tarih;
-
             if (state.cat === 'Film' || state.cat === 'Yemek') {
                 if (ani.puan && ani.puan.includes('|')) {
                     const parts = ani.puan.split('|');
@@ -423,10 +423,8 @@
                     document.getElementById('puan2Deger').innerText = parseFloat(pPuan).toFixed(1);
                 }
             }
-
             document.getElementById('submitBtn').innerText = "GÜNCELLE";
             document.getElementById('cancelEditBtn').classList.remove('hidden');
-
             document.getElementById('detailView').scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -435,14 +433,12 @@
             document.getElementById('formAniId').value = '';
             document.getElementById('submitBtn').innerText = "KAYDET";
             document.getElementById('cancelEditBtn').classList.add('hidden');
-            
             if(usesFolders.includes(state.cat)){
                 document.getElementById('hiddenTarihInput').value = state.folderDate;
             } else {
                 document.getElementById('hiddenTarihInput').value = bugun;
                 document.getElementById('tarihInputDisplay').value = bugun;
             }
-
             if (state.cat === 'Film' || state.cat === 'Yemek') {
                 document.getElementById('puan1Input').value = 7;
                 document.getElementById('puan2Input').value = 7;
@@ -455,51 +451,31 @@
             event.preventDefault();
             const btn = document.getElementById('submitBtn');
             const isEditing = document.getElementById('formAniId').value !== '';
-            
-            btn.disabled = true; 
-            btn.innerText = "YÜKLENİYOR...";
-            
+            btn.disabled = true; btn.innerText = "YÜKLENİYOR...";
             const formData = new FormData(document.getElementById('aniForm'));
-            
             if (state.cat === 'Film' || state.cat === 'Yemek') {
                 const p1 = document.getElementById('puan1Input').value;
                 const p2 = document.getElementById('puan2Input').value;
                 formData.set('puan', `C:${p1}|P:${p2}`);
-            } else {
-                formData.set('puan', '0');
-            }
-
+            } else { formData.set('puan', '0'); }
             try {
                 const endpoint = isEditing ? '/api/ani_duzenle' : '/api/ani_ekle';
                 const res = await fetch(endpoint, { method: 'POST', body: formData });
-                if(res.ok) { 
-                    cancelEdit();
-                    loadAnilar(state.cat, state.sub); 
-                }
-                else {
-                    const err = await res.json();
-                    alert('Hata: ' + (err.hata || 'Bilinmeyen hata'));
-                }
-            } catch(e) { 
-                alert('Sunucuya bağlanılamadı.'); 
-            }
-            
-            btn.disabled = false; 
-            btn.innerText = isEditing ? "GÜNCELLE" : "KAYDET";
+                if(res.ok) { cancelEdit(); loadAnilar(state.cat, state.sub); }
+                else { const err = await res.json(); alert('Hata: ' + (err.hata || 'Bilinmeyen hata')); }
+            } catch(e) { alert('Sunucuya bağlanılamadı.'); }
+            btn.disabled = false; btn.innerText = isEditing ? "GÜNCELLE" : "KAYDET";
         }
 
         function createFolder() {
             const name = document.getElementById('newFolderInput').value.trim();
             const d = document.getElementById('newFolderDate').value;
-            if(name) {
-                document.getElementById('newFolderInput').value = '';
-                openFolder(name, d);
-            }
+            if(name) { document.getElementById('newFolderInput').value = ''; openFolder(name, d); }
         }
 
         function goHome() { location.reload(); }
-        
-        function goBackFromDetail() { 
+
+        function goBackFromDetail() {
             cancelEdit();
             document.getElementById('detailView').classList.add('hidden');
             if(usesFolders.includes(state.cat)) {
@@ -512,9 +488,125 @@
             document.getElementById('lightbox').classList.remove('hidden');
         }
 
-        function closeLightbox() { 
-            document.getElementById('lightbox').classList.add('hidden'); 
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.add('hidden');
             document.getElementById('lightboxImg').src = '';
+        }
+
+        /* ══════════════════════════════════════
+           NOTES MODULE  —  localStorage: 'sc_notes'
+           Note shape: { id, title, open, items: [{id, text, done}] }
+        ══════════════════════════════════════ */
+        let notes = JSON.parse(localStorage.getItem('sc_notes') || '[]');
+        let nextNoteId = notes.reduce((m, n) => Math.max(m, n.id), 0) + 1;
+
+        function notesSave() { localStorage.setItem('sc_notes', JSON.stringify(notes)); }
+
+        function notesEsc(s) {
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        function notesRender() {
+            const list = document.getElementById('notesList');
+            if (notes.length === 0) {
+                list.innerHTML = '<div class="notes-empty">Henüz not yok.</div>';
+                return;
+            }
+            list.innerHTML = notes.map(note => {
+                const total = note.items.length;
+                const done = note.items.filter(i => i.done).length;
+                const pct = total ? Math.round((done / total) * 100) : 0;
+                const open = note.open !== false;
+                return `
+                <div class="note-card">
+                    <div class="note-header" onclick="notesToggle(${note.id})">
+                        <div style="flex:1;min-width:0;">
+                            <div class="note-title">${notesEsc(note.title)}</div>
+                            <div class="note-meta">${done}/${total} tamamlandı</div>
+                            ${total > 0 ? `<div class="note-progress"><div class="note-progress-fill" style="width:${pct}%"></div></div>` : ''}
+                        </div>
+                        <div style="display:flex;align-items:center;gap:4px;margin-left:6px;" onclick="event.stopPropagation()">
+                            <button class="note-del-btn" onclick="notesDelete(${note.id})" title="Notu sil">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                            <span class="note-chevron ${open ? 'open' : ''}">▶</span>
+                        </div>
+                    </div>
+                    ${open ? `
+                    <div class="note-body">
+                        <ul class="checklist">
+                            ${note.items.map(item => `
+                            <li class="check-item ${item.done ? 'done' : ''}">
+                                <input type="checkbox" id="cb-${note.id}-${item.id}" ${item.done ? 'checked' : ''} onchange="notesToggleItem(${note.id},${item.id})">
+                                <label for="cb-${note.id}-${item.id}">${notesEsc(item.text)}</label>
+                                <button class="del-item" onclick="notesDeleteItem(${note.id},${item.id})" title="Sil">✕</button>
+                            </li>`).join('')}
+                        </ul>
+                        <div class="add-item-row">
+                            <input type="text" id="ni-${note.id}" placeholder="Yeni öğe..." onkeydown="if(event.key==='Enter') notesAddItem(${note.id})">
+                            <button onclick="notesAddItem(${note.id})">Ekle</button>
+                        </div>
+                    </div>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        function notesToggleForm() {
+            const form = document.getElementById('notesAddForm');
+            const icon = document.getElementById('notesFabIcon');
+            const showing = form.style.display !== 'none';
+            form.style.display = showing ? 'none' : '';
+            icon.style.transform = showing ? '' : 'rotate(45deg)';
+            if (!showing) setTimeout(() => document.getElementById('notesTitleInput').focus(), 50);
+        }
+
+        function notesCreate() {
+            const input = document.getElementById('notesTitleInput');
+            const title = input.value.trim();
+            if (!title) { input.focus(); return; }
+            notes.unshift({ id: nextNoteId++, title, open: true, items: [] });
+            input.value = '';
+            notesToggleForm();
+            notesSave();
+            notesRender();
+        }
+
+        function notesDelete(id) {
+            notes = notes.filter(n => n.id !== id);
+            notesSave(); notesRender();
+        }
+
+        function notesToggle(id) {
+            const n = notes.find(n => n.id === id);
+            if (n) n.open = !n.open;
+            notesSave(); notesRender();
+        }
+
+        function notesToggleItem(noteId, itemId) {
+            const n = notes.find(n => n.id === noteId);
+            if (!n) return;
+            const item = n.items.find(i => i.id === itemId);
+            if (item) item.done = !item.done;
+            notesSave(); notesRender();
+        }
+
+        function notesAddItem(noteId) {
+            const input = document.getElementById('ni-' + noteId);
+            const text = input.value.trim();
+            if (!text) { input.focus(); return; }
+            const n = notes.find(n => n.id === noteId);
+            if (!n) return;
+            const maxId = n.items.reduce((m, i) => Math.max(m, i.id), 0);
+            n.items.push({ id: maxId + 1, text, done: false });
+            notesSave(); notesRender();
+            setTimeout(() => { const el = document.getElementById('ni-' + noteId); if(el) el.focus(); }, 0);
+        }
+
+        function notesDeleteItem(noteId, itemId) {
+            const n = notes.find(n => n.id === noteId);
+            if (!n) return;
+            n.items = n.items.filter(i => i.id !== itemId);
+            notesSave(); notesRender();
         }
     </script>
 </body>
