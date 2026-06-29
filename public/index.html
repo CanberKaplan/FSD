@@ -202,7 +202,7 @@
             const suAnkiTarih = new Date();
             const zamanFarki = suAnkiTarih - baslangicTarihi;
             const gecenGun = Math.floor(zamanFarki / (1000 * 60 * 60 * 24));
-            document.getElementById('dayCounter').innerText = gecenGun;
+            document.getElementById('dayCounter').innerText = gecenGun + " Gün";
         }
 
         function getDriveImgUrl(link) {
