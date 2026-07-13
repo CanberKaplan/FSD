@@ -42,16 +42,35 @@ drive_service, sheets_service = get_google_services()
 UPLOAD_FOLDER = 'temp_uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# ── In-memory cache to speed up repeated reads ──────────────────────────────
+_sheet_cache = None   # stores the last-fetched list of memories
+_cache_dirty = True   # set True after any write so next GET re-fetches
+
+def get_sheet_data(force=False):
+    global _sheet_cache, _cache_dirty, sheets_service
+    if force or _cache_dirty or _sheet_cache is None:
+        if not sheets_service:
+            _, sheets_service = get_google_services()
+        if not sheets_service:
+            return []
+        values = sheets_service.spreadsheets().values().get(
+            spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME
+        ).execute().get('values', [])
+        _sheet_cache = values
+        _cache_dirty = False
+    return _sheet_cache
+
+def invalidate_cache():
+    global _cache_dirty
+    _cache_dirty = True
+# ────────────────────────────────────────────────────────────────────────────
+
 @app.route('/api/anilar', methods=['GET'])
 def anilari_getir():
-    global sheets_service
     try:
-        if not sheets_service: _, sheets_service = get_google_services()
-        if not sheets_service: return jsonify([])
-        
-        values = sheets_service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute().get('values', [])
-        if not values or len(values) <= 1: return jsonify([])
-        
+        values = get_sheet_data()
+        if not values or len(values) <= 1:
+            return jsonify([])
         anilar = []
         for row in reversed(values[1:]):
             if len(row) >= 4:
@@ -63,7 +82,8 @@ def anilari_getir():
                     "puan": row[7] if len(row) > 7 else "0"
                 })
         return jsonify(anilar)
-    except Exception: return jsonify([])
+    except Exception:
+        return jsonify([])
 
 @app.route('/api/ani_ekle', methods=['POST'])
 def ani_ekle():
@@ -77,7 +97,7 @@ def ani_ekle():
         puan = request.form.get('puan', 0)
         foto = request.files.get('foto')
 
-        dogrudan_gorsel_linki = "NO_IMAGE"
+        gorsel_linki = "NO_IMAGE"
 
         if foto and foto.filename:
             orijinal_isim = secure_filename(foto.filename)
@@ -85,17 +105,24 @@ def ani_ekle():
             foto.save(temp_path)
             with open(temp_path, 'rb') as f:
                 media = MediaIoBaseUpload(f, mimetype=foto.content_type, resumable=True)
-                file = drive_service.files().create(body={'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]}, media_body=media, fields='id').execute()
+                file = drive_service.files().create(
+                    body={'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]},
+                    media_body=media, fields='id'
+                ).execute()
                 file_id = file.get('id')
-                dogrudan_gorsel_linki = f"https://drive.google.com/thumbnail?id={file_id}&sz=w800"
-                try: drive_service.permissions().create(fileId=file_id, body={'type': 'anyone', 'role': 'reader'}).execute()
+                gorsel_linki = f"https://drive.google.com/thumbnail?id={file_id}&sz=w800"
+                try:
+                    drive_service.permissions().create(
+                        fileId=file_id, body={'type': 'anyone', 'role': 'reader'}
+                    ).execute()
                 except: pass
             os.remove(temp_path)
 
         sheets_service.spreadsheets().values().append(
             spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME, valueInputOption="USER_ENTERED",
-            body={"values": [[uuid.uuid4().hex[:8], baslik, notlar, tarih, dogrudan_gorsel_linki, kategori, sub_kategori, puan]]}
+            body={"values": [[uuid.uuid4().hex[:8], baslik, notlar, tarih, gorsel_linki, kategori, sub_kategori, puan]]}
         ).execute()
+        invalidate_cache()
         return jsonify({"mesaj": "Anı eklendi!"})
     except Exception as e:
         return jsonify({"hata": str(e)}), 500
@@ -105,14 +132,25 @@ def ani_sil():
     global sheets_service
     ani_id = request.form.get('id')
     try:
-        values = sheets_service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute().get('values', [])
+        values = get_sheet_data(force=True)
         row_index = next((i for i, r in enumerate(values) if r and r[0] == ani_id), -1)
-        if row_index == -1: return jsonify({"hata": "Kayıt bulunamadı"}), 404
+        if row_index == -1:
+            return jsonify({"hata": "Kayıt bulunamadı"}), 404
         
-        sheet_id = sheets_service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()['sheets'][0]['properties']['sheetId']
-        sheets_service.spreadsheets().batchUpdate(spreadsheetId=SPREADSHEET_ID, body={"requests": [{"deleteDimension": {"range": {"sheetId": sheet_id, "dimension": "ROWS", "startIndex": row_index, "endIndex": row_index + 1}}}]}).execute()
+        sheet_id = sheets_service.spreadsheets().get(
+            spreadsheetId=SPREADSHEET_ID
+        ).execute()['sheets'][0]['properties']['sheetId']
+        sheets_service.spreadsheets().batchUpdate(
+            spreadsheetId=SPREADSHEET_ID,
+            body={"requests": [{"deleteDimension": {"range": {
+                "sheetId": sheet_id, "dimension": "ROWS",
+                "startIndex": row_index, "endIndex": row_index + 1
+            }}}]}
+        ).execute()
+        invalidate_cache()
         return jsonify({"mesaj": "Silindi"})
-    except Exception as e: return jsonify({"hata": str(e)}), 500
+    except Exception as e:
+        return jsonify({"hata": str(e)}), 500
 
 @app.route('/api/ani_duzenle', methods=['POST'])
 def ani_duzenle():
@@ -127,9 +165,10 @@ def ani_duzenle():
     foto = request.files.get('foto')
 
     try:
-        values = sheets_service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute().get('values', [])
+        values = get_sheet_data(force=True)
         row_index = next((i for i, r in enumerate(values) if r and r[0] == ani_id), -1)
-        if row_index == -1: return jsonify({"hata": "Kayıt bulunamadı"}), 404
+        if row_index == -1:
+            return jsonify({"hata": "Kayıt bulunamadı"}), 404
         
         gorsel_linki = values[row_index][4]
         if foto and foto.filename:
@@ -138,24 +177,50 @@ def ani_duzenle():
             foto.save(temp_path)
             with open(temp_path, 'rb') as f:
                 media = MediaIoBaseUpload(f, mimetype=foto.content_type, resumable=True)
-                file = drive_service.files().create(body={'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]}, media_body=media, fields='id').execute()
+                file = drive_service.files().create(
+                    body={'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]},
+                    media_body=media, fields='id'
+                ).execute()
                 gorsel_linki = f"https://drive.google.com/thumbnail?id={file.get('id')}&sz=w800"
-                try: drive_service.permissions().create(fileId=file.get('id'), body={'type': 'anyone', 'role': 'reader'}).execute()
+                try:
+                    drive_service.permissions().create(
+                        fileId=file.get('id'), body={'type': 'anyone', 'role': 'reader'}
+                    ).execute()
                 except: pass
             os.remove(temp_path)
 
         sheets_service.spreadsheets().values().update(
-            spreadsheetId=SPREADSHEET_ID, range=f"Sayfa1!A{row_index+1}:H{row_index+1}", valueInputOption="USER_ENTERED",
+            spreadsheetId=SPREADSHEET_ID,
+            range=f"Sayfa1!A{row_index+1}:H{row_index+1}",
+            valueInputOption="USER_ENTERED",
             body={"values": [[ani_id, baslik, notlar, tarih, gorsel_linki, kategori, sub_kategori, puan]]}
         ).execute()
+        invalidate_cache()
         return jsonify({"mesaj": "Güncellendi"})
-    except Exception as e: return jsonify({"hata": str(e)}), 500
+    except Exception as e:
+        return jsonify({"hata": str(e)}), 500
+
+# ── Static file routes ───────────────────────────────────────────────────────
 
 @app.route('/')
-def index(): return send_from_directory('public', 'index.html')
+def index():
+    return send_from_directory('public', 'index.html')
+
+@app.route('/sw.js')
+def service_worker():
+    # Must be served from root scope with correct headers
+    response = send_from_directory('public', 'sw.js')
+    response.headers['Cache-Control'] = 'no-cache'
+    response.headers['Content-Type'] = 'application/javascript'
+    return response
+
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory('public', 'manifest.json')
 
 @app.route('/<path:path>')
-def serve_public(path): return send_from_directory('public', path)
+def serve_public(path):
+    return send_from_directory('public', path)
 
 if __name__ == '__main__':
     app.run(debug=True)
