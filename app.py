@@ -1,9 +1,11 @@
 import os
 import uuid
 import json
+import pickle
 import base64
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
+from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
@@ -19,34 +21,61 @@ SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets'
 ]
 
-def get_google_services():
-    """Service Account ile Google servislerine bağlan.
-    Öncelik: SERVICE_ACCOUNT_JSON env var (Render için)
-    Yedek: service_account.json dosyası (lokal geliştirme için)
-    """
+# ── HİBRİT KİMLİK DOĞRULAMA ──────────────────────────────────────────────────
+# Sheets  → Service Account (süresi dolmaz, okuma/yazma için)
+# Drive   → OAuth token (fotoğraf yükleme için; production modda süresi dolmaz)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_sheets_service():
+    """Service Account ile Sheets bağlantısı."""
     creds = None
     try:
         sa_json = os.getenv('SERVICE_ACCOUNT_JSON')
         if sa_json:
-            # Render'da environment variable olarak saklanan JSON
             info = json.loads(base64.b64decode(sa_json)) if not sa_json.strip().startswith('{') else json.loads(sa_json)
             creds = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
         elif os.path.exists('service_account.json'):
-            # Lokal geliştirme: dosyadan oku
             creds = service_account.Credentials.from_service_account_file('service_account.json', scopes=SCOPES)
     except Exception as e:
         print(f"Service account yüklenemedi: {e}")
-        return None, None
-
+        return None
     if creds:
-        return build('drive', 'v3', credentials=creds), build('sheets', 'v4', credentials=creds)
-    return None, None
+        return build('sheets', 'v4', credentials=creds)
+    return None
 
-drive_service, sheets_service = get_google_services()
+def get_drive_service():
+    """OAuth token ile Drive bağlantısı (fotoğraf yükleme için)."""
+    token_path = 'token.pickle'
+    if not os.path.exists(token_path) and os.getenv('TOKEN_PICKLE_BASE64'):
+        with open(token_path, 'wb') as f:
+            f.write(base64.b64decode(os.getenv('TOKEN_PICKLE_BASE64')))
+    
+    creds = None
+    if os.path.exists(token_path):
+        try:
+            with open(token_path, 'rb') as token:
+                creds = pickle.load(token)
+        except Exception:
+            return None
+    
+    if creds and creds.expired and creds.refresh_token:
+        try:
+            creds.refresh(Request())
+            with open(token_path, 'wb') as token:
+                pickle.dump(creds, token)
+        except Exception:
+            return None
+            
+    if creds:
+        return build('drive', 'v3', credentials=creds)
+    return None
+
+sheets_service = get_sheets_service()
+drive_service = get_drive_service()
 UPLOAD_FOLDER = 'temp_uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ── In-memory cache to speed up repeated reads ──────────────────────────────
+# ── In-memory cache ──────────────────────────────────────────────────────────
 _sheet_cache = None
 _cache_dirty = True
 
@@ -54,7 +83,7 @@ def get_sheet_data(force=False):
     global _sheet_cache, _cache_dirty, sheets_service
     if force or _cache_dirty or _sheet_cache is None:
         if not sheets_service:
-            _, sheets_service = get_google_services()
+            sheets_service = get_sheets_service()
         if not sheets_service:
             return []
         values = sheets_service.spreadsheets().values().get(
@@ -67,7 +96,36 @@ def get_sheet_data(force=False):
 def invalidate_cache():
     global _cache_dirty
     _cache_dirty = True
-# ────────────────────────────────────────────────────────────────────────────
+
+def upload_photo_to_drive(foto):
+    """Fotoğrafı OAuth ile Drive'a yükle, thumbnail linkini döndür."""
+    global drive_service
+    if not drive_service:
+        drive_service = get_drive_service()
+    if not drive_service:
+        raise Exception("Drive servisi kullanılamıyor (token eksik/geçersiz)")
+    
+    orijinal_isim = secure_filename(foto.filename)
+    temp_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4().hex[:8]}_{orijinal_isim}")
+    foto.save(temp_path)
+    try:
+        with open(temp_path, 'rb') as f:
+            media = MediaIoBaseUpload(f, mimetype=foto.content_type, resumable=True)
+            file = drive_service.files().create(
+                body={'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]},
+                media_body=media, fields='id'
+            ).execute()
+            file_id = file.get('id')
+            try:
+                drive_service.permissions().create(
+                    fileId=file_id, body={'type': 'anyone', 'role': 'reader'}
+                ).execute()
+            except: pass
+            return f"https://drive.google.com/thumbnail?id={file_id}&sz=w800"
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+# ─────────────────────────────────────────────────────────────────────────────
 
 @app.route('/api/anilar', methods=['GET'])
 def anilari_getir():
@@ -91,7 +149,7 @@ def anilari_getir():
 
 @app.route('/api/ani_ekle', methods=['POST'])
 def ani_ekle():
-    global drive_service, sheets_service
+    global sheets_service
     try:
         baslik = request.form.get('baslik', 'Fotoğraf')
         notlar = request.form.get('notlar', '')
@@ -102,25 +160,8 @@ def ani_ekle():
         foto = request.files.get('foto')
 
         gorsel_linki = "NO_IMAGE"
-
         if foto and foto.filename:
-            orijinal_isim = secure_filename(foto.filename)
-            temp_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4().hex[:8]}_{orijinal_isim}")
-            foto.save(temp_path)
-            with open(temp_path, 'rb') as f:
-                media = MediaIoBaseUpload(f, mimetype=foto.content_type, resumable=True)
-                file = drive_service.files().create(
-                    body={'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]},
-                    media_body=media, fields='id'
-                ).execute()
-                file_id = file.get('id')
-                gorsel_linki = f"https://drive.google.com/thumbnail?id={file_id}&sz=w800"
-                try:
-                    drive_service.permissions().create(
-                        fileId=file_id, body={'type': 'anyone', 'role': 'reader'}
-                    ).execute()
-                except: pass
-            os.remove(temp_path)
+            gorsel_linki = upload_photo_to_drive(foto)
 
         sheets_service.spreadsheets().values().append(
             spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME, valueInputOption="USER_ENTERED",
@@ -158,7 +199,7 @@ def ani_sil():
 
 @app.route('/api/ani_duzenle', methods=['POST'])
 def ani_duzenle():
-    global drive_service, sheets_service
+    global sheets_service
     ani_id = request.form.get('id')
     baslik = request.form.get('baslik', 'Fotoğraf')
     notlar = request.form.get('notlar', '')
@@ -174,24 +215,9 @@ def ani_duzenle():
         if row_index == -1:
             return jsonify({"hata": "Kayıt bulunamadı"}), 404
         
-        gorsel_linki = values[row_index][4]
+        gorsel_linki = values[row_index][4] if len(values[row_index]) > 4 else "NO_IMAGE"
         if foto and foto.filename:
-            orijinal_isim = secure_filename(foto.filename)
-            temp_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4().hex[:8]}_{orijinal_isim}")
-            foto.save(temp_path)
-            with open(temp_path, 'rb') as f:
-                media = MediaIoBaseUpload(f, mimetype=foto.content_type, resumable=True)
-                file = drive_service.files().create(
-                    body={'name': orijinal_isim, 'parents': [DRIVE_FOLDER_ID]},
-                    media_body=media, fields='id'
-                ).execute()
-                gorsel_linki = f"https://drive.google.com/thumbnail?id={file.get('id')}&sz=w800"
-                try:
-                    drive_service.permissions().create(
-                        fileId=file.get('id'), body={'type': 'anyone', 'role': 'reader'}
-                    ).execute()
-                except: pass
-            os.remove(temp_path)
+            gorsel_linki = upload_photo_to_drive(foto)
 
         sheets_service.spreadsheets().values().update(
             spreadsheetId=SPREADSHEET_ID,
@@ -204,7 +230,7 @@ def ani_duzenle():
     except Exception as e:
         return jsonify({"hata": str(e)}), 500
 
-# ── Static file routes ───────────────────────────────────────────────────────
+# ── Static file routes ────────────────────────────────────────────────────────
 
 @app.route('/')
 def index():
