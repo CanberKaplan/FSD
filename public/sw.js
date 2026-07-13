@@ -31,8 +31,10 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Always go network-first for API calls
-  if (url.pathname.startsWith('/api/')) {
+  // Always go network-first for API calls and external images
+  if (url.pathname.startsWith('/api/') || 
+      url.hostname.includes('drive.google.com') ||
+      url.hostname.includes('googleusercontent.com')) {
     e.respondWith(
       fetch(e.request)
         .then(res => {
