@@ -1,10 +1,10 @@
 import os
 import uuid
-import pickle
+import json
 import base64
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
-from google.auth.transport.requests import Request
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
@@ -14,26 +14,30 @@ DRIVE_FOLDER_ID = '1ALg2PFHjGWnlfl3wnzYiKTP0cG2Q-Lu4'
 SPREADSHEET_ID = '1oBL6V7UQBCKhWClRkmZ1_3YtjxUs4KjmxHQCFjzZEFY' 
 RANGE_NAME = 'Sayfa1!A:H' 
 
+SCOPES = [
+    'https://www.googleapis.com/auth/drive',
+    'https://www.googleapis.com/auth/spreadsheets'
+]
+
 def get_google_services():
-    token_path = 'token.pickle'
-    if not os.path.exists(token_path) and os.getenv('TOKEN_PICKLE_BASE64'):
-        with open(token_path, 'wb') as f:
-            f.write(base64.b64decode(os.getenv('TOKEN_PICKLE_BASE64')))
-    
+    """Service Account ile Google servislerine bağlan.
+    Öncelik: SERVICE_ACCOUNT_JSON env var (Render için)
+    Yedek: service_account.json dosyası (lokal geliştirme için)
+    """
     creds = None
-    if os.path.exists(token_path):
-        try:
-            with open(token_path, 'rb') as token:
-                creds = pickle.load(token)
-        except Exception: return None, None
-    
-    if creds and creds.expired and creds.refresh_token:
-        try:
-            creds.refresh(Request())
-            with open(token_path, 'wb') as token:
-                pickle.dump(creds, token)
-        except Exception: return None, None
-            
+    try:
+        sa_json = os.getenv('SERVICE_ACCOUNT_JSON')
+        if sa_json:
+            # Render'da environment variable olarak saklanan JSON
+            info = json.loads(base64.b64decode(sa_json)) if not sa_json.strip().startswith('{') else json.loads(sa_json)
+            creds = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
+        elif os.path.exists('service_account.json'):
+            # Lokal geliştirme: dosyadan oku
+            creds = service_account.Credentials.from_service_account_file('service_account.json', scopes=SCOPES)
+    except Exception as e:
+        print(f"Service account yüklenemedi: {e}")
+        return None, None
+
     if creds:
         return build('drive', 'v3', credentials=creds), build('sheets', 'v4', credentials=creds)
     return None, None
@@ -43,8 +47,8 @@ UPLOAD_FOLDER = 'temp_uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ── In-memory cache to speed up repeated reads ──────────────────────────────
-_sheet_cache = None   # stores the last-fetched list of memories
-_cache_dirty = True   # set True after any write so next GET re-fetches
+_sheet_cache = None
+_cache_dirty = True
 
 def get_sheet_data(force=False):
     global _sheet_cache, _cache_dirty, sheets_service
@@ -208,7 +212,6 @@ def index():
 
 @app.route('/sw.js')
 def service_worker():
-    # Must be served from root scope with correct headers
     response = send_from_directory('public', 'sw.js')
     response.headers['Cache-Control'] = 'no-cache'
     response.headers['Content-Type'] = 'application/javascript'
