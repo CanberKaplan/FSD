@@ -245,9 +245,9 @@
         window.onload = () => { hesaplaGunSayaci(); initSlideshow(); notesRender(); };
 
         function hesaplaGunSayaci() {
-            const baslangic = new Date('2019-01-13T00:00:00');
+            const baslangic = new Date('2018-01-13T00:00:00');
             const gun = Math.floor((new Date() - baslangic) / 86400000);
-            document.getElementById('dayCounter').innerText = gun + " Gün";
+            document.getElementById('dayCounter').innerText = gun;
         }
 
         function getDriveImgUrl(link) {
