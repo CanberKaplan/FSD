@@ -5,6 +5,7 @@ import pickle
 import base64
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
+from PIL import Image, ImageOps
 from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -97,6 +98,23 @@ def invalidate_cache():
     global _cache_dirty
     _cache_dirty = True
 
+def _fix_image_orientation(path):
+    """EXIF Orientation etiketine göre pikselleri gerçekten döndürüp etiketi
+    sıfırlar. Google Drive'ın thumbnail servisi EXIF Orientation'ı dikkate
+    almadığı için, döndürme bilgisini yüklemeden önce piksellere işlemek
+    gerekiyor; aksi halde fotoğraflar slaytta/listede ters/yan görünüyor."""
+    try:
+        with Image.open(path) as img:
+            fixed = ImageOps.exif_transpose(img)
+            if fixed is None:
+                return
+            save_kwargs = {}
+            if img.format == 'JPEG':
+                save_kwargs['quality'] = 95
+            fixed.save(path, format=img.format, **save_kwargs)
+    except Exception as e:
+        print(f"EXIF orientation düzeltilemedi: {e}")
+
 def upload_photo_to_drive(foto):
     """Fotoğrafı OAuth ile Drive'a yükle, thumbnail linkini döndür."""
     global drive_service
@@ -108,6 +126,7 @@ def upload_photo_to_drive(foto):
     orijinal_isim = secure_filename(foto.filename)
     temp_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4().hex[:8]}_{orijinal_isim}")
     foto.save(temp_path)
+    _fix_image_orientation(temp_path)
     try:
         with open(temp_path, 'rb') as f:
             media = MediaIoBaseUpload(f, mimetype=foto.content_type, resumable=True)
