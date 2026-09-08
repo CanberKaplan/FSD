@@ -242,7 +242,39 @@
         let slideshowInterval;
         const usesFolders = ['Seyahat', 'Aktivite'];
 
-        window.onload = () => { hesaplaGunSayaci(); initSlideshow(); notesRender(); };
+        window.onload = () => {
+            hesaplaGunSayaci(); initSlideshow(); notesRender();
+            // Uygulama içi gezinme geçmişinin ilk (kök) durağı: buradan geri
+            // gidilecek yer yok, dolayısıyla burada swipe-back gerçekten
+            // uygulamadan çıkar (beklenen davranış).
+            history.replaceState({ view: 'home' }, '', location.pathname);
+        };
+
+        // Mobilde sola kaydırma (swipe-back) ya da tarayıcı/PWA'nın geri
+        // tuşu bu event'i tetikler. Sekme değiştirmek yerine bir önceki
+        // görünümü (renderState) tekrar çiziyoruz.
+        window.addEventListener('popstate', (e) => {
+            renderState(e.state || { view: 'home' });
+        });
+
+        function renderState(s) {
+            document.getElementById('homeView').classList.toggle('hidden', s.view !== 'home');
+            document.getElementById('folderView').classList.toggle('hidden', s.view !== 'folder');
+            document.getElementById('detailView').classList.toggle('hidden', s.view !== 'detail');
+            if (s.view === 'folder') {
+                state.cat = s.cat;
+                document.getElementById('folderTitle').innerText = s.cat;
+                loadFolders(s.cat);
+            } else if (s.view === 'detail') {
+                state.cat = s.cat;
+                renderDetailView(s.sub, s.dateVal);
+            }
+        }
+
+        function pushView(s) {
+            renderState(s);
+            history.pushState(s, '', location.pathname);
+        }
 
         function hesaplaGunSayaci() {
             const baslangic = new Date('2018-01-13T00:00:00');
@@ -286,18 +318,20 @@
 
         function navigate(kat) {
             state.cat = kat;
-            document.getElementById('homeView').classList.add('hidden');
-            if(usesFolders.includes(kat)) {
-                document.getElementById('folderView').classList.remove('hidden');
-                document.getElementById('folderTitle').innerText = kat;
-                loadFolders(kat);
-            } else { openFolder('Genel', bugun); }
+            if (usesFolders.includes(kat)) {
+                pushView({ view: 'folder', cat: kat });
+            } else {
+                openFolder('Genel', bugun);
+            }
         }
 
         function openFolder(sub, dateVal) {
+            if (dateVal) state.folderDate = dateVal;
+            pushView({ view: 'detail', cat: state.cat, sub, dateVal: dateVal || null });
+        }
+
+        function renderDetailView(sub, dateVal) {
             state.sub = sub;
-            document.getElementById('folderView').classList.add('hidden');
-            document.getElementById('detailView').classList.remove('hidden');
             const inFolder = usesFolders.includes(state.cat);
             document.getElementById('inputGroup').classList.toggle('hidden', inFolder);
             document.getElementById('baslikInput').required = !inFolder;
@@ -312,7 +346,6 @@
             }
             document.getElementById('formKategori').value = state.cat;
             document.getElementById('formSubKategori').value = sub;
-            if (dateVal) state.folderDate = dateVal;
             if (inFolder) {
                 document.getElementById('hiddenTarihInput').value = state.folderDate;
             } else {
@@ -483,14 +516,14 @@
             if(name) { document.getElementById('newFolderInput').value = ''; openFolder(name, d); }
         }
 
-        function goHome() { location.reload(); }
+        // "Geri Dön" / "Geri" butonları da history.back() kullanıyor, böylece
+        // elle dokunma ile sola kaydırma (swipe-back) aynı geçmiş yığınını
+        // paylaşıp tutarlı davranıyor.
+        function goHome() { history.back(); }
 
         function goBackFromDetail() {
             cancelEdit();
-            document.getElementById('detailView').classList.add('hidden');
-            if(usesFolders.includes(state.cat)) {
-                document.getElementById('folderView').classList.remove('hidden');
-            } else { goHome(); }
+            history.back();
         }
 
         function openLightbox(url) {
