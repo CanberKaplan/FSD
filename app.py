@@ -503,7 +503,10 @@ def push_durt():
     from pywebpush import webpush, WebPushException
     if not VAPID_PRIVATE_KEY:
         return jsonify({"hata": "Bildirimler sunucuda ayarlanmamış"}), 503
-    sender = (request.get_json(silent=True) or {}).get('endpoint') or ''
+    body = request.get_json(silent=True) or {}
+    sender = body.get('endpoint') or ''
+    # İsteğe bağlı mesaj: boşsa varsayılan, en fazla 120 karakter
+    mesaj = ' '.join(str(body.get('mesaj') or '').split())[:120] or '💙'
 
     # Arka arkaya basmaya karşı: aynı cihazdan 5 saniyede bir
     now = time.time()
@@ -516,7 +519,7 @@ def push_durt():
         hedefler = [r for r in rows if r[0] != sender]
         if not hedefler:
             return jsonify({"hata": "Karşı tarafta bildirimler henüz açık değil"}), 404
-        payload = json.dumps({"title": "Anı Defteri", "body": "💙 Seni düşünüyorum"})
+        payload = json.dumps({"title": "Anı Defteri", "body": mesaj})
         gonderilen, olu = 0, set()
         for r in hedefler:
             try:

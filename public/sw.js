@@ -6,7 +6,7 @@ self.addEventListener('push', e => {
   try { data = e.data ? e.data.json() : {}; } catch (_) {}
   e.waitUntil(
     self.registration.showNotification(data.title || 'Anı Defteri', {
-      body: data.body || '💙 Seni düşünüyorum',
+      body: data.body || '💙',
       icon: '/icon-192.png',
       badge: '/favicon-32.png',
       tag: 'durt',

@@ -127,6 +127,15 @@
         <button id="durtBtn" onclick="durtTikla()" class="hidden absolute top-5 left-4 sm:left-6 bg-white/80 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-sm border border-slate-200 text-xs sm:text-sm font-bold text-slate-700 items-center gap-1.5 z-50 active:scale-95 transition-transform">
             <span id="durtIcon">🔔</span><span id="durtText">Bildirimleri aç</span>
         </button>
+        <div id="durtPanel" class="hidden absolute top-14 left-4 sm:left-6 z-50 w-72 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-lg border border-slate-200 p-3">
+            <input id="durtMesaj" type="text" maxlength="120" enterkeyhint="send" placeholder="Mesaj yaz (boş bırakılabilir)"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();durtGonder();} if(event.key==='Escape') durtPanel(false);"
+                class="w-full text-base sm:text-sm px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-blue-400 focus:bg-white">
+            <div class="flex items-center justify-between mt-2 gap-2">
+                <span class="text-[11px] text-slate-400 leading-tight">Boşsa sadece 💙 gider</span>
+                <button id="durtGonderBtn" onclick="durtGonder()" class="shrink-0 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-xl active:scale-95 transition">Gönder</button>
+            </div>
+        </div>
         <div id="durtToast" class="hidden fixed left-1/2 -translate-x-1/2 bottom-6 z-[60] bg-slate-800 text-white text-xs sm:text-sm font-medium px-4 py-2.5 rounded-full shadow-lg max-w-[90vw] text-center"></div>
 
         <!-- SC Logo -->
@@ -804,8 +813,12 @@
 
       function durtGorunum(acik) {
         document.getElementById('durtIcon').textContent = acik ? '💙' : '🔔';
-        document.getElementById('durtText').textContent = acik ? 'Dürt' : 'Bildirimleri aç';
-        const b = durt.btn(); b.classList.remove('hidden'); b.classList.add('flex');
+        const yazi = document.getElementById('durtText');
+        yazi.textContent = acik ? '' : 'Bildirimleri aç';
+        yazi.classList.toggle('hidden', acik); // açıkken sadece kalp
+        const b = durt.btn();
+        b.setAttribute('aria-label', acik ? 'Bildirim gönder' : 'Bildirimleri aç');
+        b.classList.remove('hidden'); b.classList.add('flex');
       }
 
       function b64ToUint8(b64) {
@@ -871,6 +884,47 @@
         durtToast('Bildirimler açıldı 🎉');
       }
 
+      function durtPanelAcik() { return !document.getElementById('durtPanel').classList.contains('hidden'); }
+      function durtPanel(ac) {
+        const p = document.getElementById('durtPanel');
+        p.classList.toggle('hidden', !ac);
+        if (ac) setTimeout(() => document.getElementById('durtMesaj').focus(), 50);
+      }
+
+      async function durtGonder() {
+        if (durt.gonderiliyor) return;
+        durt.gonderiliyor = true;
+        const btn = document.getElementById('durtGonderBtn');
+        btn.disabled = true;
+        try {
+          const sub = await durtAbonelik();
+          if (!sub) { durtToast('Önce bildirimleri aç'); return; }
+          const input = document.getElementById('durtMesaj');
+          const r = await fetch('/api/push/durt', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: sub.endpoint, mesaj: input.value.trim() })
+          });
+          const d = await r.json().catch(() => ({}));
+          durtToast(r.ok ? 'Gönderildi 💙' : (d.hata || 'Gönderilemedi'));
+          if (r.ok) {
+            input.value = '';
+            durtPanel(false);
+            if (navigator.vibrate) navigator.vibrate(40);
+          }
+        } catch (e) {
+          durtToast('Gönderilemedi: ' + e.message);
+        } finally {
+          durt.gonderiliyor = false;
+          btn.disabled = false;
+        }
+      }
+
+      // Panel dışına dokununca kapat
+      document.addEventListener('click', e => {
+        if (!durtPanelAcik()) return;
+        if (!e.target.closest('#durtPanel') && !e.target.closest('#durtBtn')) durtPanel(false);
+      });
+
       async function durtTikla() {
         if (!durt.destek) {
           durtToast(durt.ios && !durt.standalone
@@ -885,15 +939,7 @@
           }
           const sub = await durtAbonelik();
           if (!sub) return await durtAboneOl(Promise.resolve('granted'));
-          if (durt.gonderiliyor) return;
-          durt.gonderiliyor = true;
-          const r = await fetch('/api/push/durt', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ endpoint: sub.endpoint })
-          });
-          const d = await r.json().catch(() => ({}));
-          durtToast(r.ok ? 'Dürtüldü 💙' : (d.hata || 'Gönderilemedi'));
-          if (r.ok && navigator.vibrate) navigator.vibrate(40);
+          durtPanel(!durtPanelAcik());
         } catch (e) {
           const ham = `${e.name}: ${e.message}`;
           let msg = 'Bir hata oldu: ' + ham;
