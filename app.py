@@ -406,6 +406,131 @@ def ani_duzenle():
     except Exception as e:
         return jsonify({"hata": str(e)}), 500
 
+# ── DÜRTME BİLDİRİMLERİ (Web Push) ────────────────────────────────────────────
+# Her cihaz bildirimleri açınca aboneliği Sheets'teki "Bildirimler" sekmesine
+# kaydedilir. "Dürt" denince, gönderen cihaz hariç tüm abonelere bildirim gider.
+# VAPID_PRIVATE_KEY : Web Push imza anahtarı (Render → Environment).
+PUSH_SHEET = 'Bildirimler'
+VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY', '')
+VAPID_SUB = os.getenv('VAPID_SUB', 'https://fsd-uckd.onrender.com')
+_last_durt = {}
+
+def _vapid_public_key():
+    from py_vapid import Vapid
+    from cryptography.hazmat.primitives import serialization
+    raw = Vapid.from_string(VAPID_PRIVATE_KEY).public_key.public_bytes(
+        serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint)
+    return base64.urlsafe_b64encode(raw).rstrip(b'=').decode()
+
+def _sheets():
+    global sheets_service
+    if not sheets_service:
+        sheets_service = get_sheets_service()
+    if not sheets_service:
+        raise Exception("Sheets servisi kullanılamıyor")
+    return sheets_service
+
+def _ensure_push_sheet():
+    svc = _sheets()
+    meta = svc.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
+    if not any(s['properties']['title'] == PUSH_SHEET for s in meta['sheets']):
+        svc.spreadsheets().batchUpdate(spreadsheetId=SPREADSHEET_ID, body={"requests": [
+            {"addSheet": {"properties": {"title": PUSH_SHEET}}}]}).execute()
+        svc.spreadsheets().values().update(
+            spreadsheetId=SPREADSHEET_ID, range=f"{PUSH_SHEET}!A1:C1",
+            valueInputOption="RAW", body={"values": [["endpoint", "subscription", "tarih"]]}
+        ).execute()
+    return svc
+
+def _load_subs():
+    svc = _ensure_push_sheet()
+    rows = svc.spreadsheets().values().get(
+        spreadsheetId=SPREADSHEET_ID, range=f"{PUSH_SHEET}!A2:C").execute().get('values', [])
+    return [r for r in rows if len(r) >= 2]
+
+def _save_subs(rows):
+    svc = _ensure_push_sheet()
+    svc.spreadsheets().values().clear(
+        spreadsheetId=SPREADSHEET_ID, range=f"{PUSH_SHEET}!A2:C").execute()
+    if rows:
+        svc.spreadsheets().values().update(
+            spreadsheetId=SPREADSHEET_ID, range=f"{PUSH_SHEET}!A2:C{len(rows) + 1}",
+            valueInputOption="RAW", body={"values": rows}).execute()
+
+@app.route('/api/push/public_key')
+def push_public_key():
+    if not VAPID_PRIVATE_KEY:
+        return jsonify({"hata": "Bildirimler sunucuda ayarlanmamış (VAPID_PRIVATE_KEY)"}), 503
+    return jsonify({"key": _vapid_public_key()})
+
+@app.route('/api/push/subscribe', methods=['POST'])
+def push_subscribe():
+    try:
+        sub = (request.get_json(silent=True) or {}).get('subscription') or {}
+        endpoint = sub.get('endpoint')
+        if not endpoint or not sub.get('keys'):
+            return jsonify({"hata": "Geçersiz abonelik"}), 400
+        rows = [r for r in _load_subs() if r[0] != endpoint]
+        rows.append([endpoint, json.dumps(sub), time.strftime('%Y-%m-%d %H:%M')])
+        _save_subs(rows)
+        return jsonify({"mesaj": "Bildirimler açıldı"})
+    except Exception as e:
+        print(f"Abonelik kaydedilemedi: {e}")
+        return jsonify({"hata": str(e)}), 500
+
+@app.route('/api/push/unsubscribe', methods=['POST'])
+def push_unsubscribe():
+    try:
+        endpoint = (request.get_json(silent=True) or {}).get('endpoint')
+        rows = _load_subs()
+        kalan = [r for r in rows if r[0] != endpoint]
+        if len(kalan) != len(rows):
+            _save_subs(kalan)
+        return jsonify({"mesaj": "Bildirimler kapatıldı"})
+    except Exception as e:
+        return jsonify({"hata": str(e)}), 500
+
+@app.route('/api/push/durt', methods=['POST'])
+def push_durt():
+    from pywebpush import webpush, WebPushException
+    if not VAPID_PRIVATE_KEY:
+        return jsonify({"hata": "Bildirimler sunucuda ayarlanmamış"}), 503
+    sender = (request.get_json(silent=True) or {}).get('endpoint') or ''
+
+    # Arka arkaya basmaya karşı: aynı cihazdan 5 saniyede bir
+    now = time.time()
+    if now - _last_durt.get(sender, 0) < 5:
+        return jsonify({"hata": "Biraz bekle 🙂"}), 429
+    _last_durt[sender] = now
+
+    try:
+        rows = _load_subs()
+        hedefler = [r for r in rows if r[0] != sender]
+        if not hedefler:
+            return jsonify({"hata": "Karşı tarafta bildirimler henüz açık değil"}), 404
+        payload = json.dumps({"title": "Anı Defteri", "body": "💙 Seni düşünüyorum"})
+        gonderilen, olu = 0, set()
+        for r in hedefler:
+            try:
+                webpush(subscription_info=json.loads(r[1]), data=payload,
+                        vapid_private_key=VAPID_PRIVATE_KEY,
+                        vapid_claims={"sub": VAPID_SUB}, ttl=3600,
+                        headers={"Urgency": "high"})
+                gonderilen += 1
+            except WebPushException as e:
+                code = getattr(e.response, 'status_code', None)
+                print(f"Bildirim gönderilemedi ({code}): {e}")
+                if code in (404, 410):  # abonelik süresi dolmuş/iptal edilmiş
+                    olu.add(r[0])
+        if olu:
+            _save_subs([r for r in rows if r[0] not in olu])
+        if not gonderilen:
+            return jsonify({"hata": "Bildirim gönderilemedi, karşı taraf bildirimleri yeniden açmalı"}), 502
+        return jsonify({"mesaj": "Gönderildi", "adet": gonderilen})
+    except Exception as e:
+        print(f"Dürtme hatası: {e}")
+        return jsonify({"hata": str(e)}), 500
+
 # ── Static file routes ────────────────────────────────────────────────────────
 
 @app.route('/')

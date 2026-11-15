@@ -15,6 +15,15 @@
                 return res;
             };
         })();
+
+        // ── Mevsim teması ── Kasım–Şubat arası otomatik olarak kış teması.
+        // Elle denemek için adres sonuna ?tema=kis veya ?tema=normal ekle.
+        (function () {
+            const p = new URLSearchParams(location.search).get('tema');
+            const ay = new Date().getMonth() + 1;
+            const kis = p === 'kis' || (p !== 'normal' && (ay >= 11 || ay <= 2));
+            if (kis) document.documentElement.classList.add('theme-winter');
+        })();
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -65,6 +74,43 @@
         .notes-form-btns .btn-ok:hover { background: #2563eb; }
         .notes-form-btns .btn-cancel { font-size: 11px; color: #64748b; background: none; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; cursor: pointer; }
         .notes-empty { text-align: center; padding: 18px 0; color: #cbd5e1; font-size: 11px; }
+
+        /* ── KIŞ TEMASI ─────────────────────────────────────────────────── */
+        html.theme-winter body {
+            background:
+                radial-gradient(ellipse at 15% -10%, rgba(191, 219, 254, .55), transparent 55%),
+                radial-gradient(ellipse at 100% 0%, rgba(224, 231, 255, .6), transparent 50%),
+                linear-gradient(180deg, #eaf2fb 0%, #f4f8fc 45%, #f8fafc 100%);
+            background-attachment: fixed;
+        }
+        /* Kartlar: hafif buzlu cam görünümü */
+        html.theme-winter .bg-white {
+            background-color: rgba(255, 255, 255, .86);
+            border-color: #dbe7f6;
+        }
+        html.theme-winter .note-card { border-color: #dbe7f6; }
+        html.theme-winter #homeView .grid > div > button:hover { box-shadow: 0 6px 18px -6px rgba(59, 130, 246, .25); }
+
+        /* Gün sayacı: kar tanesi */
+        html.theme-winter #dayCounter::before {
+            content: '❄';
+            margin-right: 6px;
+            color: #60a5fa;
+            font-size: 1.05em;
+        }
+
+        /* Slayt kartının üst kenarında kar birikintisi */
+        html.theme-winter #homeHero { border-color: #dbe7f6; }
+        html.theme-winter #homeHero::after {
+            content: '';
+            position: absolute; left: 0; right: 0; top: -1px; height: 22px;
+            z-index: 5; pointer-events: none;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 22' preserveAspectRatio='none'%3E%3Cpath d='M0 0H400V9C388 15 376 19 362 14C348 9 338 18 322 17C306 16 300 8 284 10C268 12 262 20 244 18C226 16 222 9 206 11C190 13 182 21 164 17C146 13 142 8 126 11C110 14 100 20 84 16C68 12 60 9 44 13C28 17 14 16 0 10Z' fill='white'/%3E%3C/svg%3E") top / 100% 100% no-repeat;
+            filter: drop-shadow(0 2px 2px rgba(148, 163, 184, .35));
+        }
+
+        /* Kar yağışı katmanı (sayaç z-50, lightbox z-50 → onların altında) */
+        #snowCanvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 40; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,900&display=swap" rel="stylesheet">
 </head>
@@ -77,6 +123,12 @@
             <span id="dayCounter">Hesaplanıyor...</span>
         </div>
         
+        <!-- Dürt (bildirim) butonu -->
+        <button id="durtBtn" onclick="durtTikla()" class="hidden absolute top-5 left-4 sm:left-6 bg-white/80 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-sm border border-slate-200 text-xs sm:text-sm font-bold text-slate-700 items-center gap-1.5 z-50 active:scale-95 transition-transform">
+            <span id="durtIcon">🔔</span><span id="durtText">Bildirimleri aç</span>
+        </button>
+        <div id="durtToast" class="hidden fixed left-1/2 -translate-x-1/2 bottom-6 z-[60] bg-slate-800 text-white text-xs sm:text-sm font-medium px-4 py-2.5 rounded-full shadow-lg max-w-[90vw] text-center"></div>
+
         <!-- SC Logo -->
         <header class="flex flex-col items-center justify-center w-full py-10 mb-4 select-none">
             <svg viewBox="0 0 680 480" width="160" role="img" xmlns="http://www.w3.org/2000/svg">
@@ -663,6 +715,177 @@
             n.items = n.items.filter(i => i.id !== itemId);
             notesSave(); notesRender();
         }
+    </script>
+
+    <!-- Kış teması: kar yağışı -->
+    <script>
+      (function () {
+        if (!document.documentElement.classList.contains('theme-winter')) return;
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', '#eaf2fb');
+        // Hareket azaltma tercihi olanlarda animasyon yok
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        const canvas = document.createElement('canvas');
+        canvas.id = 'snowCanvas';
+        canvas.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(canvas);
+        const ctx = canvas.getContext('2d');
+        let w = 0, h = 0, flakes = [], raf = null;
+
+        function makeFlake(randomY) {
+          const r = Math.random() * 2.2 + 0.8;
+          return {
+            x: Math.random() * w,
+            y: randomY ? Math.random() * h : -r * 2,
+            r,
+            vy: r * 0.28 + Math.random() * 0.35,   // büyük taneler daha hızlı düşer
+            sway: Math.random() * 0.6 + 0.2,
+            phase: Math.random() * Math.PI * 2,
+            a: Math.random() * 0.45 + 0.4
+          };
+        }
+
+        function resize() {
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          w = window.innerWidth; h = window.innerHeight;
+          canvas.width = w * dpr; canvas.height = h * dpr;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          const target = Math.min(70, Math.round(w / 9));
+          while (flakes.length < target) flakes.push(makeFlake(true));
+          flakes.length = target;
+        }
+
+        function tick() {
+          ctx.clearRect(0, 0, w, h);
+          for (const f of flakes) {
+            f.phase += 0.012;
+            f.y += f.vy;
+            f.x += Math.sin(f.phase) * f.sway * 0.5;
+            if (f.y - f.r > h) Object.assign(f, makeFlake(false));
+            if (f.x < -5) f.x = w + 5; else if (f.x > w + 5) f.x = -5;
+            ctx.beginPath();
+            ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${f.a})`;
+            // Açık zeminde de seçilsin diye hafif mavi-gri hale
+            ctx.shadowColor = 'rgba(100,140,190,.6)';
+            ctx.shadowBlur = 3;
+            ctx.fill();
+          }
+          raf = requestAnimationFrame(tick);
+        }
+
+        function start() { if (!raf) raf = requestAnimationFrame(tick); }
+        function stop() { if (raf) cancelAnimationFrame(raf); raf = null; }
+
+        resize();
+        window.addEventListener('resize', resize);
+        // Arka plandayken pil harcamasın
+        document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+        start();
+      })();
+    </script>
+
+    <!-- Dürtme bildirimleri -->
+    <script>
+      const durt = {
+        btn: () => document.getElementById('durtBtn'),
+        destek: 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,
+        ios: /iphone|ipad|ipod/i.test(navigator.userAgent),
+        standalone: window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true,
+        gonderiliyor: false
+      };
+
+      function durtToast(msg) {
+        const t = document.getElementById('durtToast');
+        t.textContent = msg; t.classList.remove('hidden');
+        clearTimeout(t._h); t._h = setTimeout(() => t.classList.add('hidden'), 2800);
+      }
+
+      function durtGorunum(acik) {
+        document.getElementById('durtIcon').textContent = acik ? '💙' : '🔔';
+        document.getElementById('durtText').textContent = acik ? 'Dürt' : 'Bildirimleri aç';
+        const b = durt.btn(); b.classList.remove('hidden'); b.classList.add('flex');
+      }
+
+      function b64ToUint8(b64) {
+        const pad = '='.repeat((4 - b64.length % 4) % 4);
+        const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+        return Uint8Array.from(raw, c => c.charCodeAt(0));
+      }
+
+      async function durtAbonelik() {
+        if (!durt.destek) return null;
+        const reg = await navigator.serviceWorker.ready;
+        return reg.pushManager.getSubscription();
+      }
+
+      async function durtAboneOl() {
+        const izin = await Notification.requestPermission();
+        if (izin !== 'granted') { durtToast('Bildirim izni verilmedi'); return; }
+        const kr = await fetch('/api/push/public_key');
+        const k = await kr.json();
+        if (!kr.ok) { durtToast(k.hata || 'Bildirimler ayarlanmamış'); return; }
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(k.key) });
+        const r = await fetch('/api/push/subscribe', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: sub.toJSON() })
+        });
+        if (!r.ok) { durtToast('Kaydedilemedi, tekrar dene'); return; }
+        try { localStorage.setItem('durt_sync', String(Date.now())); } catch (_) {}
+        durtGorunum(true);
+        durtToast('Bildirimler açıldı 🎉');
+      }
+
+      async function durtTikla() {
+        if (!durt.destek) {
+          durtToast(durt.ios && !durt.standalone
+            ? 'Önce Paylaş → "Ana Ekrana Ekle" ile uygulamayı ekle'
+            : 'Bu tarayıcı bildirimleri desteklemiyor');
+          return;
+        }
+        try {
+          const sub = await durtAbonelik();
+          if (!sub || Notification.permission !== 'granted') return durtAboneOl();
+          if (durt.gonderiliyor) return;
+          durt.gonderiliyor = true;
+          const r = await fetch('/api/push/durt', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: sub.endpoint })
+          });
+          const d = await r.json().catch(() => ({}));
+          durtToast(r.ok ? 'Dürtüldü 💙' : (d.hata || 'Gönderilemedi'));
+          if (r.ok && navigator.vibrate) navigator.vibrate(40);
+        } catch (e) {
+          durtToast('Bir hata oldu: ' + e.message);
+        } finally {
+          durt.gonderiliyor = false;
+        }
+      }
+
+      window.addEventListener('load', async () => {
+        if (!durt.destek) {
+          // iOS'ta Safari sekmesinde Push yok; butonu yine gösterip yönlendir
+          if (durt.ios) durtGorunum(false);
+          return;
+        }
+        durtGorunum(false); // SW hazır olmasa bile buton görünsün
+        try {
+          const sub = await durtAbonelik();
+          const acik = !!sub && Notification.permission === 'granted';
+          durtGorunum(acik);
+          // Aboneliği haftada bir sunucuyla eşitle (sunucudan silinmişse geri gelsin)
+          let son = 0; try { son = +localStorage.getItem('durt_sync') || 0; } catch (_) {}
+          if (acik && Date.now() - son > 7 * 864e5) {
+            const r = await fetch('/api/push/subscribe', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ subscription: sub.toJSON() })
+            });
+            if (r.ok) try { localStorage.setItem('durt_sync', String(Date.now())); } catch (_) {}
+          }
+        } catch (_) { durtGorunum(false); }
+      });
     </script>
 
     <!-- Service Worker Registration -->

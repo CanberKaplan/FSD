@@ -1,4 +1,30 @@
-const CACHE = 'sc-ani-v2';
+const CACHE = 'sc-ani-v3';
+
+// ── Dürtme bildirimleri ──
+self.addEventListener('push', e => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch (_) {}
+  e.waitUntil(
+    self.registration.showNotification(data.title || 'Anı Defteri', {
+      body: data.body || '💙 Seni düşünüyorum',
+      icon: '/icon-192.png',
+      badge: '/favicon-32.png',
+      tag: 'durt',
+      renotify: true,
+      vibrate: [80, 60, 80]
+    })
+  );
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) if ('focus' in c) return c.focus();
+      return self.clients.openWindow('/');
+    })
+  );
+});
 // Not: '/' ve '/index.html' önceden önbelleğe alınmaz; giriş yapılmamışsa
 // bu adresler /login'e yönlenir ve giriş sayfası yanlışlıkla önbelleğe girerdi.
 const STATIC = [
