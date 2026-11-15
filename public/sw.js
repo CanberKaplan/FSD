@@ -1,4 +1,4 @@
-const CACHE = 'sc-ani-v3';
+const CACHE = 'sc-ani-v4';
 
 // ── Dürtme bildirimleri ──
 self.addEventListener('push', e => {
@@ -35,10 +35,20 @@ const STATIC = [
   'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,900&display=swap'
 ];
 
-// Install: cache all static assets
+// Install: statik dosyaları önbelleğe al.
+// cache.addAll() tek bir dosya bile başarısız olursa kurulumu tamamen iptal
+// ediyordu (Tailwind CDN CORS başlığı vermediği için hep başarısız oluyordu)
+// ve service worker hiç devreye girmiyordu → bildirimler açılamıyordu.
+// Artık her dosya ayrı ayrı ve hata yutularak alınıyor; çapraz kaynaklı
+// dosyalar no-cors (opaque) olarak saklanıyor.
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(STATIC)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(c => Promise.all(STATIC.map(url => {
+      const req = new URL(url, self.location.origin).origin === self.location.origin
+        ? new Request(url)
+        : new Request(url, { mode: 'no-cors' });
+      return fetch(req).then(res => c.put(url, res)).catch(err => console.warn('Önbelleğe alınamadı:', url, err));
+    }))).then(() => self.skipWaiting())
   );
 });
 
