@@ -35,8 +35,14 @@ def get_sheets_service():
         if sa_json:
             info = json.loads(base64.b64decode(sa_json)) if not sa_json.strip().startswith('{') else json.loads(sa_json)
             creds = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
-        elif os.path.exists('service_account.json'):
-            creds = service_account.Credentials.from_service_account_file('service_account.json', scopes=SCOPES)
+        else:
+            # Yerel ortam: önce service_account.json, yoksa credentials.json
+            for sa_path in ('service_account.json', 'credentials.json'):
+                if os.path.exists(sa_path):
+                    creds = service_account.Credentials.from_service_account_file(sa_path, scopes=SCOPES)
+                    break
+            else:
+                print("Service account bulunamadı (SERVICE_ACCOUNT_JSON / service_account.json / credentials.json)")
     except Exception as e:
         print(f"Service account yüklenemedi: {e}")
         return None
@@ -56,7 +62,8 @@ def get_drive_service():
         try:
             with open(token_path, 'rb') as token:
                 creds = pickle.load(token)
-        except Exception:
+        except Exception as e:
+            print(f"token.pickle okunamadı: {e}")
             return None
     
     if creds and creds.expired and creds.refresh_token:
@@ -64,9 +71,10 @@ def get_drive_service():
             creds.refresh(Request())
             with open(token_path, 'wb') as token:
                 pickle.dump(creds, token)
-        except Exception:
+        except Exception as e:
+            print(f"Drive OAuth token yenilenemedi: {e}")
             return None
-            
+
     if creds:
         return build('drive', 'v3', credentials=creds)
     return None
@@ -163,7 +171,8 @@ def anilari_getir():
                     "puan": row[7] if len(row) > 7 else "0"
                 })
         return jsonify(anilar)
-    except Exception:
+    except Exception as e:
+        print(f"Anılar okunamadı: {e}")
         return jsonify([])
 
 @app.route('/api/ani_ekle', methods=['POST'])
@@ -177,6 +186,11 @@ def ani_ekle():
         sub_kategori = request.form.get('sub_kategori', 'Genel')
         puan = request.form.get('puan', 0)
         foto = request.files.get('foto')
+
+        if not sheets_service:
+            sheets_service = get_sheets_service()
+        if not sheets_service:
+            raise Exception("Sheets servisi kullanılamıyor (service account eksik/geçersiz)")
 
         gorsel_linki = "NO_IMAGE"
         if foto and foto.filename:
@@ -271,4 +285,4 @@ def serve_public(path):
     return send_from_directory('public', path)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=os.getenv('FLASK_DEBUG', '1') == '1')
