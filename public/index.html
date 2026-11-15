@@ -848,8 +848,19 @@
         const k = await kr.json();
         if (!kr.ok) { durtToast(k.hata || 'Bildirimler ayarlanmamış'); return; }
         const reg = await swHazir();
+        const secenek = { userVisibleOnly: true, applicationServerKey: b64ToUint8(k.key) };
         let sub = await reg.pushManager.getSubscription();
-        if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(k.key) });
+        if (!sub) {
+          try {
+            sub = await reg.pushManager.subscribe(secenek);
+          } catch (e) {
+            if (e.name !== 'InvalidStateError') throw e;
+            // Eski/farklı anahtarlı bir abonelik kalmış: sil ve yeniden dene
+            const eski = await reg.pushManager.getSubscription();
+            if (eski) await eski.unsubscribe();
+            sub = await reg.pushManager.subscribe(secenek);
+          }
+        }
         const r = await fetch('/api/push/subscribe', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ subscription: sub.toJSON() })
@@ -884,7 +895,21 @@
           durtToast(r.ok ? 'Dürtüldü 💙' : (d.hata || 'Gönderilemedi'));
           if (r.ok && navigator.vibrate) navigator.vibrate(40);
         } catch (e) {
-          durtToast('Bir hata oldu: ' + e.message);
+          const ham = `${e.name}: ${e.message}`;
+          let msg = 'Bir hata oldu: ' + ham;
+          if (e.name === 'AbortError' && /push service/i.test(e.message)) {
+            msg = durt.ios
+              ? 'Bildirim servisine ulaşılamadı, internetini kontrol edip tekrar dene'
+              : 'Telefonun bildirim servisine ulaşılamadı. Chrome için Google Play Hizmetleri açık ve güncel olmalı; pil tasarrufu Chrome\'u kısıtlamamalı.';
+          } else if (e.name === 'NotAllowedError') {
+            msg = 'Bildirim izni kapalı: tarayıcı ayarlarından bu site için bildirimlere izin ver';
+          }
+          durtToast(msg);
+          // Hatayı sunucu loglarına da yaz (teşhis için)
+          fetch('/api/push/hata', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hata: ham })
+          }).catch(() => {});
         } finally {
           durt.gonderiliyor = false;
         }

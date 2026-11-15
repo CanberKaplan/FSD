@@ -20,7 +20,8 @@ import sys
 # Windows konsolu (cp1252) Türkçe karakterli print'lerde çökmesin
 for _stream in (sys.stdout, sys.stderr):
     try:
-        _stream.reconfigure(encoding='utf-8', errors='replace')
+        # line_buffering: loglar (Render dahil) tamponda beklemeden hemen görünsün
+        _stream.reconfigure(encoding='utf-8', errors='replace', line_buffering=True)
     except Exception:
         pass
 
@@ -129,7 +130,7 @@ def _login_page(error='', status=200):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'GET':
+    if request.method != 'POST':  # GET ve HEAD (ör. UptimeRobot) şifre denemesi değildir
         if _is_authenticated():
             return redirect('/')
         return _login_page()
@@ -477,6 +478,13 @@ def push_subscribe():
     except Exception as e:
         print(f"Abonelik kaydedilemedi: {e}")
         return jsonify({"hata": str(e)}), 500
+
+@app.route('/api/push/hata', methods=['POST'])
+def push_hata():
+    """Telefonda bildirim açılırken oluşan hatayı Render loglarına yazar."""
+    d = request.get_json(silent=True) or {}
+    print(f"Bildirim istemci hatası: {str(d.get('hata'))[:300]} | UA: {request.headers.get('User-Agent', '')[:150]}")
+    return jsonify({"mesaj": "kaydedildi"})
 
 @app.route('/api/push/unsubscribe', methods=['POST'])
 def push_unsubscribe():
