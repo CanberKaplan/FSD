@@ -814,20 +814,42 @@
         return Uint8Array.from(raw, c => c.charCodeAt(0));
       }
 
+      // Service worker'ı hazır et; kayıtlı değilse kaydet, en fazla 10 sn bekle.
+      // (navigator.serviceWorker.ready tek başına sonsuza kadar bekleyebiliyor.)
+      async function swHazir() {
+        let reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) reg = await navigator.serviceWorker.register('/sw.js');
+        if (reg.active) return reg;
+        return Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise((_, rej) => setTimeout(() => rej(new Error('Uygulama hazırlanamadı, kapatıp tekrar aç')), 10000))
+        ]);
+      }
+
       async function durtAbonelik() {
         if (!durt.destek) return null;
-        const reg = await navigator.serviceWorker.ready;
+        const reg = await swHazir();
         return reg.pushManager.getSubscription();
       }
 
-      async function durtAboneOl() {
-        const izin = await Notification.requestPermission();
-        if (izin !== 'granted') { durtToast('Bildirim izni verilmedi'); return; }
+      // izinIstegi: tıklama anında başlatılmış Notification.requestPermission() sözü.
+      // iOS izni yalnızca doğrudan dokunmanın içinde sorulursa gösteriyor; araya
+      // başka bir await girerse istek sessizce yok sayılıyor.
+      async function durtAboneOl(izinIstegi) {
+        const izin = await izinIstegi;
+        if (izin !== 'granted') {
+          durtToast(izin === 'denied'
+            ? 'Bildirim izni kapalı: Ayarlar → Bildirimler → SC bölümünden aç'
+            : 'Bildirim izni verilmedi');
+          return;
+        }
+        durtToast('Bildirimler açılıyor…');
         const kr = await fetch('/api/push/public_key');
         const k = await kr.json();
         if (!kr.ok) { durtToast(k.hata || 'Bildirimler ayarlanmamış'); return; }
-        const reg = await navigator.serviceWorker.ready;
-        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(k.key) });
+        const reg = await swHazir();
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(k.key) });
         const r = await fetch('/api/push/subscribe', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ subscription: sub.toJSON() })
@@ -846,8 +868,12 @@
           return;
         }
         try {
+          // İzin henüz yoksa, HİÇBİR await'ten önce iste (iOS şartı)
+          if (Notification.permission !== 'granted') {
+            return await durtAboneOl(Notification.requestPermission());
+          }
           const sub = await durtAbonelik();
-          if (!sub || Notification.permission !== 'granted') return durtAboneOl();
+          if (!sub) return await durtAboneOl(Promise.resolve('granted'));
           if (durt.gonderiliyor) return;
           durt.gonderiliyor = true;
           const r = await fetch('/api/push/durt', {
