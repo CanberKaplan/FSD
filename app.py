@@ -1,9 +1,14 @@
 import os
+import time
+import hmac
 import uuid
 import json
 import pickle
 import base64
-from flask import Flask, request, jsonify, send_from_directory
+import hashlib
+import secrets
+from datetime import timedelta
+from flask import Flask, request, jsonify, send_from_directory, session, redirect, Response
 from werkzeug.utils import secure_filename
 from PIL import Image, ImageOps
 from google.auth.transport.requests import Request
@@ -11,7 +16,145 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
+import sys
+# Windows konsolu (cp1252) Türkçe karakterli print'lerde çökmesin
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 app = Flask(__name__, static_folder='public')
+
+# ── GİRİŞ (ŞİFRE) KORUMASI ───────────────────────────────────────────────────
+# APP_PASSWORD : giriş şifresi (Render → Environment). Tanımlı değilse
+#                uygulama kilitli kalır, kimse giremez.
+# SECRET_KEY   : oturum çerezini imzalayan anahtar. Tanımlı değilse her
+#                yeniden başlatmada rastgele üretilir (herkes tekrar giriş yapar).
+APP_PASSWORD = os.getenv('APP_PASSWORD', '')
+app.secret_key = os.getenv('SECRET_KEY') or secrets.token_hex(32)
+if not os.getenv('SECRET_KEY'):
+    print("UYARI: SECRET_KEY tanımlı değil, geçici anahtar kullanılıyor.")
+if not APP_PASSWORD:
+    print("UYARI: APP_PASSWORD tanımlı değil, uygulamaya giriş yapılamaz.")
+app.config.update(
+    PERMANENT_SESSION_LIFETIME=timedelta(days=365),
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=bool(os.getenv('RENDER')),  # Render'da yalnızca HTTPS
+)
+
+# Şifre değişince eski oturumlar otomatik geçersiz olsun
+_PW_FINGERPRINT = hashlib.sha256(('fsd:' + APP_PASSWORD).encode()).hexdigest()[:16]
+
+# Giriş sayfasının kendisi için gereken, şifresiz erişilebilen dosyalar
+PUBLIC_PATHS = {'/login', '/logout', '/sw.js', '/manifest.json', '/favicon-32.png',
+                '/apple-touch-icon.png', '/icon-192.png', '/icon-512.png',
+                '/logo_son.png', '/logo_son.svg'}
+
+# Kaba kuvvet denemelerine karşı basit sınır (15 dakikalık pencere):
+# IP başına 5 hatalı deneme, ayrıca IP'den bağımsız toplam 30 hatalı deneme.
+# X-Forwarded-For başlığı sahte gönderilebildiği için toplam sınır asıl
+# korumadır; açık oturumlar (çerezli cihazlar) bu kilitten etkilenmez.
+_MAX_FAILS, _MAX_FAILS_GLOBAL, _WINDOW = 5, 30, 15 * 60
+_GLOBAL = '*'
+_failed_logins = {}
+
+def _client_ip():
+    fwd = request.headers.get('X-Forwarded-For', '')
+    return fwd.split(',')[0].strip() if fwd else (request.remote_addr or '?')
+
+def _recent_fails(key):
+    now = time.time()
+    attempts = [t for t in _failed_logins.get(key, []) if now - t < _WINDOW]
+    _failed_logins[key] = attempts
+    return len(attempts)
+
+def _is_locked_out(ip):
+    return _recent_fails(ip) >= _MAX_FAILS or _recent_fails(_GLOBAL) >= _MAX_FAILS_GLOBAL
+
+def _record_fail(ip):
+    now = time.time()
+    _failed_logins.setdefault(ip, []).append(now)
+    _failed_logins.setdefault(_GLOBAL, []).append(now)
+
+def _is_authenticated():
+    return bool(APP_PASSWORD) and session.get('auth') == _PW_FINGERPRINT
+
+@app.before_request
+def require_login():
+    if request.path in PUBLIC_PATHS or _is_authenticated():
+        return None
+    if request.path.startswith('/api/'):
+        return jsonify({"hata": "Giriş gerekli"}), 401
+    return redirect('/login')
+
+LOGIN_HTML = """<!DOCTYPE html>
+<html lang="tr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anı Defteri · Giriş</title>
+<meta name="theme-color" content="#f8fafc">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#0f172a;padding:16px}
+.card{width:100%;max-width:340px;background:#fff;border-radius:24px;padding:32px 24px;
+box-shadow:0 10px 30px rgba(15,23,42,.08);text-align:center}
+img{width:96px;height:96px;object-fit:contain;margin-bottom:8px}
+h1{font-size:18px;margin:0 0 20px;font-weight:600}
+input{width:100%;font-size:16px;padding:14px 16px;border:1px solid #e2e8f0;border-radius:14px;
+outline:none;background:#f8fafc;margin-bottom:12px}
+input:focus{border-color:#3b82f6;background:#fff}
+button{width:100%;font-size:16px;padding:14px;border:0;border-radius:14px;background:#0f172a;
+color:#fff;font-weight:600;cursor:pointer}
+.err{color:#dc2626;font-size:14px;margin:0 0 12px}
+</style></head><body>
+<form class="card" method="post" action="/login">
+<img src="/logo_son.png" alt="">
+<h1>Anı Defteri</h1>
+__ERROR__
+<input type="password" name="sifre" placeholder="Şifre" autocomplete="current-password" autofocus required>
+<button type="submit">Giriş</button>
+</form></body></html>"""
+
+def _login_page(error='', status=200):
+    err_html = f'<p class="err">{error}</p>' if error else ''
+    resp = Response(LOGIN_HTML.replace('__ERROR__', err_html), status=status,
+                    mimetype='text/html')
+    resp.headers['Cache-Control'] = 'no-store'
+    return resp
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'GET':
+        if _is_authenticated():
+            return redirect('/')
+        return _login_page()
+
+    ip = _client_ip()
+    if _is_locked_out(ip):
+        return _login_page('Çok fazla hatalı deneme. 15 dakika sonra tekrar dene.', 429)
+    if not APP_PASSWORD:
+        return _login_page('Şifre sunucuda tanımlanmamış (APP_PASSWORD).', 503)
+
+    sifre = request.form.get('sifre', '')
+    if hmac.compare_digest(sifre.encode(), APP_PASSWORD.encode()):
+        _failed_logins.pop(ip, None)
+        session.clear()
+        session.permanent = True
+        session['auth'] = _PW_FINGERPRINT
+        return redirect('/')
+
+    _record_fail(ip)
+    return _login_page('Şifre yanlış.', 401)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/login')
 
 DRIVE_FOLDER_ID = '1ALg2PFHjGWnlfl3wnzYiKTP0cG2Q-Lu4' 
 SPREADSHEET_ID = '1oBL6V7UQBCKhWClRkmZ1_3YtjxUs4KjmxHQCFjzZEFY' 
@@ -267,7 +410,9 @@ def ani_duzenle():
 
 @app.route('/')
 def index():
-    return send_from_directory('public', 'index.html')
+    response = send_from_directory('public', 'index.html')
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
 
 @app.route('/sw.js')
 def service_worker():

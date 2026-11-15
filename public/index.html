@@ -4,6 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anı Defteri</title>
+    <script>
+        // Oturum düşerse (401) giriş sayfasına yönlendir
+        (function () {
+            const _fetch = window.fetch.bind(window);
+            window.fetch = async (...args) => {
+                const res = await _fetch(...args);
+                const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url) || '';
+                if (res.status === 401 && url.includes('/api/')) location.replace('/login');
+                return res;
+            };
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- PWA -->
